@@ -1,0 +1,63 @@
+openapi: 3.0.3
+info: { title: PrintBuddy API, version: 1.0.0, description: "Money is integer paise. The server is the only source of price and payment truth." }
+servers: [{ url: /api/v1 }]
+components:
+  securitySchemes:
+    sessionToken: { type: apiKey, in: header, name: X-Session-Token, description: "Opaque token from the QR URL; scopes every request to one session." }
+    adminBearer: { type: http, scheme: bearer, description: "Sanctum token (admin routes)." }
+  schemas:
+    Error: { type: object, required: [message], properties: { message: { type: string }, errors: { type: object } } }
+    PrintSettings:
+      type: object
+      required: [copies, color_mode, paper_size, orientation, duplex]
+      properties:
+        page_range: { type: string, example: "1-3,5", description: "Empty = all pages" }
+        copies: { type: integer, minimum: 1, maximum: 100 }
+        color_mode: { type: string, enum: [bw, color] }
+        paper_size: { type: string, example: A4 }
+        orientation: { type: string, enum: [portrait, landscape] }
+        duplex: { type: boolean }
+        scaling: { type: string, enum: [fit, fill, actual] }
+    Quote:
+      type: object
+      properties:
+        pages_selected: { type: integer }
+        billable_sides: { type: integer }
+        sheets: { type: integer }
+        subtotal_paise: { type: integer }
+        service_fee_paise: { type: integer }
+        tax_paise: { type: integer }
+        total_paise: { type: integer }
+paths:
+  /kiosks/{kiosk}/sessions:
+    post: { summary: Create a time-limited QR session (rate limited), responses: { "201": { description: "Returns session id, join URL, expires_at" } } }
+  /sessions/current:
+    get: { summary: "Session status. ?claim=1 marks the session as opened on a phone (kiosk polls without it)", security: [{ sessionToken: [] }], responses: { "200": { description: ok }, "410": { description: expired } } }
+  /documents:
+    get: { summary: List documents in this session, security: [{ sessionToken: [] }], responses: { "200": { description: ok } } }
+    post: { summary: Upload (multipart). Content-sniffed, size and count limited, security: [{ sessionToken: [] }], responses: { "201": { description: stored, conversion queued }, "415": { description: unsupported type }, "422": { description: validation } } }
+  /documents/{id}:
+    get: { summary: Metadata and conversion status, security: [{ sessionToken: [] }], responses: { "200": { description: ok }, "404": { description: not in this session } } }
+    delete: { summary: Remove document, security: [{ sessionToken: [] }], responses: { "204": { description: deleted } } }
+  /documents/{id}/preview:
+    get: { summary: Stream converted PDF or image via authorized private delivery, security: [{ sessionToken: [] }], responses: { "200": { description: file } } }
+  /quotes:
+    post:
+      summary: Server-side price quote
+      security: [{ sessionToken: [] }]
+      requestBody: { content: { application/json: { schema: { type: object, properties: { document_id: { type: string }, settings: { $ref: "#/components/schemas/PrintSettings" } } } } } }
+      responses: { "200": { description: ok, content: { application/json: { schema: { $ref: "#/components/schemas/Quote" } } } } }
+  /orders:
+    post: { summary: Create order (re-prices on server, stores pricing snapshot), security: [{ sessionToken: [] }], responses: { "201": { description: created } } }
+  /orders/{reference}:
+    get: { summary: Order and payment status, security: [{ sessionToken: [] }], responses: { "200": { description: ok } } }
+  /orders/{reference}/payment:
+    post: { summary: Create provider payment for the exact server amount, security: [{ sessionToken: [] }], responses: { "201": { description: "UPI QR payload and expiry" } } }
+    get: { summary: Poll payment; verifies with provider server-side, security: [{ sessionToken: [] }], responses: { "200": { description: ok } } }
+  /webhooks/{provider}:
+    post: { summary: "Signed provider webhook. Unsigned or replayed events never mark an order paid.", responses: { "200": { description: acknowledged }, "401": { description: bad signature } } }
+  /admin/orders: { get: { summary: "Search/filter/paginate orders", security: [{ adminBearer: [] }], responses: { "200": { description: ok } } } }
+  /admin/payments: { get: { summary: Payments and verification status, security: [{ adminBearer: [] }], responses: { "200": { description: ok } } } }
+  /admin/pricing-rules: { get: { security: [{ adminBearer: [] }], responses: { "200": { description: ok } } }, put: { summary: "Update rates (audit logged)", security: [{ adminBearer: [] }], responses: { "200": { description: ok } } } }
+  /admin/reports: { get: { security: [{ adminBearer: [] }], responses: { "200": { description: ok } } } }
+  /admin/audit-logs: { get: { security: [{ adminBearer: [] }], responses: { "200": { description: ok } } } }
