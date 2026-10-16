@@ -21,7 +21,7 @@ class SessionResource extends JsonResource
             'kiosk' => ['code' => $this->kiosk->code, 'name' => $this->kiosk->name],
             'expires_at' => $this->expires_at->toIso8601String(),
             'claimed_at' => $this->claimed_at?->toIso8601String(),
-            'sandbox' => config('printbuddy.payment.provider') === 'fake',
+            'sandbox' => app(\App\Support\Integrations::class)->paymentProvider() === 'fake',
             'token' => $this->token,       // only present on creation (kiosk)
             'join_url' => $this->joinUrl,  // only present on creation (kiosk)
         ], fn ($v) => $v !== null);

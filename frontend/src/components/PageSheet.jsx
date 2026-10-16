@@ -53,7 +53,7 @@ export default function PageSheet({ pdf, item, ratio, paperMm, renderWidth = 400
       )}
       {rect && <MarksLayer marks={marks} rect={rect} />}
       <StampLayer stamp={stamp} number={number} total={total} />
-      {number != null && <span className="absolute bottom-[3px] right-1.5 text-[10px] text-[#999]">{number}</span>}
+      {number != null && <span className="absolute bottom-[0.1875rem] right-1.5 text-[0.625rem] text-[#999]">{number}</span>}
     </div>
   )
 }

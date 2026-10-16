@@ -116,7 +116,7 @@ export default function AnnotateView({ pdf, src, rot, marks, onChange }) {
           : 'Tap a mark to select, drag to move, use the corner to resize.'}
       </p>
 
-      <div className="relative mx-auto w-full max-w-[520px] overflow-hidden rounded-[5px] bg-white shadow-[0_10px_30px_rgba(16,36,43,.35)]" style={{ aspectRatio: view ? view.width / view.height : 0.707 }}>
+      <div className="relative mx-auto w-full max-w-[32.5rem] overflow-hidden rounded-[5px] bg-white shadow-[0_10px_30px_rgba(16,36,43,.35)]" style={{ aspectRatio: view ? view.width / view.height : 0.707 }}>
         <PdfCanvas pdf={pdf} page={src} rotation={rot} width={720} className="h-full w-full" label="Page to edit" />
         <div ref={layerRef} data-testid="annotate-layer" className="absolute inset-0 touch-none select-none" style={{ containerType: 'size', cursor }}
           onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => setDrag(null)}>
@@ -142,7 +142,7 @@ export default function AnnotateView({ pdf, src, rot, marks, onChange }) {
       </div>
 
       {m && (
-        <div className="mx-auto mt-3 max-w-[520px] rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3" aria-label="Selected mark">
+        <div className="mx-auto mt-3 max-w-[32.5rem] rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3" aria-label="Selected mark">
           {m.t === 'text' && (<>
             <label htmlFor="mark-text" className="mb-1 block text-xs font-bold">Text</label>
             <textarea id="mark-text" rows={2} maxLength={400} value={m.text} onChange={(e) => replace(sel, { ...marks[sel], text: e.target.value }, true)}

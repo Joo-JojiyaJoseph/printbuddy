@@ -29,6 +29,24 @@ final class RazorpayProvider implements PaymentProvider
         }
     }
 
+    /** Checks the keys against Razorpay without creating anything. @return array{ok:bool,message:string} */
+    public function ping(): array
+    {
+        try {
+            $res = $this->http()->get('/payments/qr_codes', ['count' => 1]);
+        } catch (\Throwable) {
+            return ['ok' => false, 'message' => 'Could not reach Razorpay. Check the internet connection of the server.'];
+        }
+        if ($res->successful()) {
+            return ['ok' => true, 'message' => 'Razorpay accepted the keys and QR Codes are enabled.'];
+        }
+        if ($res->status() === 401) {
+            return ['ok' => false, 'message' => 'Razorpay rejected these keys. Check the Key ID and Key Secret.'];
+        }
+
+        return ['ok' => false, 'message' => 'Razorpay answered with error '.$res->status().'. If QR Codes are not enabled on your account, ask Razorpay support to enable them.'];
+    }
+
     public function createPayment(string $orderReference, int $amountPaise, string $currency): array
     {
         if ($currency !== 'INR') {

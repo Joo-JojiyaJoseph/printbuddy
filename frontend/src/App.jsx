@@ -10,6 +10,7 @@ const Configure = lazy(() => import('./pages/Configure'))
 const Review = lazy(() => import('./pages/Review'))
 const Pay = lazy(() => import('./pages/Pay'))
 const Done = lazy(() => import('./pages/Done'))
+const AdminApp = lazy(() => import('./admin/AdminApp'))
 import ErrorBoundary from './components/ErrorBoundary'
 
 // Each screen loads on demand, so the first paint only downloads what that screen needs (the PDF engine loads only when editing).
@@ -23,6 +24,7 @@ export default function App() {
       <Suspense fallback={<Loading />}>
       <Routes>
         <Route path="/kiosk" element={<Kiosk />} />
+        <Route path="/admin/*" element={<AdminApp />} />
         <Route path="/s/:token" element={<SessionProvider />}>
           <Route index element={<Welcome />} />
           <Route path="upload" element={<Upload />} />

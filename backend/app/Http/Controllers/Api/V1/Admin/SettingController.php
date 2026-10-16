@@ -13,6 +13,8 @@ use Illuminate\Validation\Rule;
 /** Upload limits, supported file types, TTLs and retention. Admin role only. */
 class SettingController extends Controller
 {
+    private const GENERAL = ['session_ttl_minutes', 'payment_ttl_minutes', 'document_retention_hours', 'max_upload_mb', 'max_files', 'max_pages', 'max_copies', 'allowed_types', 'paper_sizes'];
+
     public function __construct(private readonly Settings $settings, private readonly AuditLogger $audit) {}
 
     public function show(DocumentConverter $converter): JsonResponse
@@ -24,8 +26,8 @@ class SettingController extends Controller
     {
         $rules = [];
         foreach (Settings::EDITABLE as $key => $rule) {
-            if (in_array($key, ['duplex_discount_bps', 'service_fee_paise', 'tax_bps'], true)) {
-                continue; // pricing modifiers are edited through /admin/pricing
+            if (! in_array($key, self::GENERAL, true)) {
+                continue; // pricing, printer and payment settings have their own screens (and secrets never travel here)
             }
             $rules[$key] = array_merge(['sometimes'], explode('|', $rule));
         }
@@ -42,14 +44,13 @@ class SettingController extends Controller
 
     private function payload(DocumentConverter $converter): array
     {
-        $all = $this->settings->all();
-        unset($all['duplex_discount_bps'], $all['service_fee_paise'], $all['tax_bps']);
+        $all = array_intersect_key($this->settings->all(), array_flip(self::GENERAL));
 
         return $all + [
             'all_types' => Settings::ALL_TYPES,
             'conversion_driver' => config('printbuddy.conversion.driver'),
             'conversion_available' => $converter->available(),
-            'payment_provider' => config('printbuddy.payment.provider'),
+            'payment_provider' => app(\App\Support\Integrations::class)->paymentProvider(),
         ];
     }
 }

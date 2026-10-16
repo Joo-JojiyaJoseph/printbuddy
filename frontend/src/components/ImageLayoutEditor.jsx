@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RotateCcw, RotateCw } from 'lucide-react'
 import SheetPaper from './SheetPaper'
+import PreviewDock from './PreviewDock'
 import Segmented from './ui/Segmented'
 import { PER_PAGE_OPTIONS, defaultSheet, sheetPageCount, sheetPages, toSheetEdits } from '../utils/pagePlan'
 
@@ -41,22 +42,19 @@ export default function ImageLayoutEditor({ doc, images, edits, onEdits, paper, 
 
   return (
     <div className="mx-auto max-w-3xl md:grid md:max-w-none md:grid-cols-2 md:items-start md:gap-6 lg:gap-10">
-      <div className="min-w-0 md:sticky md:top-4">
-      <div className="mx-auto w-[72%] max-w-[420px] py-1 md:w-[58%] lg:w-[84%]">
-        <SheetPaper cells={pages[cur] ?? []} docsById={byId} perPage={sheet.per_page} fit={sheet.fit} margin={sheet.margin}
-          size={paper.size} orientation={paper.orientation} label={`Sheet ${cur + 1} preview`} />
-      </div>
-      <div className="mt-2 flex items-center justify-center gap-4 text-sm font-bold text-[var(--muted)]">
-        <button type="button" aria-label="Previous sheet" disabled={cur <= 0} onClick={() => setPage(cur - 1)} className={iconBtn}><ChevronLeft aria-hidden="true" /></button>
-        <span>Sheet {cur + 1} of {pages.length}</span>
-        <button type="button" aria-label="Next sheet" disabled={cur >= pages.length - 1} onClick={() => setPage(cur + 1)} className={iconBtn}><ChevronRight aria-hidden="true" /></button>
-      </div>
-      <p role="status" className="m-0 mt-1 text-center text-sm font-bold">
-        {sheet.images.length} image{sheet.images.length === 1 ? '' : 's'} → {sheetsCount} sheet{sheetsCount === 1 ? '' : 's'}
-      </p>
-      {lonely && <p role="status" className="m-0 mt-1 text-center text-xs text-amber">Only one image is selected. Choose “Copies of each image” to repeat it, or add more images below.</p>}
-
-      </div>
+      <PreviewDock title="Sheet preview" mdClass="md:w-[58%] lg:w-[84%] md:max-w-[26.25rem]"
+        preview={<SheetPaper cells={pages[cur] ?? []} docsById={byId} perPage={sheet.per_page} fit={sheet.fit} margin={sheet.margin}
+          size={paper.size} orientation={paper.orientation} label={`Sheet ${cur + 1} preview`} />}
+        after={lonely && <p role="status" className="m-0 mt-2 text-center text-xs text-amber">Only one image is selected. Choose “Copies of each image” to repeat it, or add more images below.</p>}>
+        <p role="status" className="m-0 mb-1 text-sm font-bold md:mt-1 md:text-center">
+          {sheet.images.length} image{sheet.images.length === 1 ? '' : 's'} → {sheetsCount} sheet{sheetsCount === 1 ? '' : 's'}
+        </p>
+        <div className="flex items-center gap-2 text-sm font-bold text-[var(--muted)] md:justify-center md:gap-4">
+          <button type="button" aria-label="Previous sheet" disabled={cur <= 0} onClick={() => setPage(cur - 1)} className={iconBtn}><ChevronLeft aria-hidden="true" /></button>
+          <span>Sheet {cur + 1} of {pages.length}</span>
+          <button type="button" aria-label="Next sheet" disabled={cur >= pages.length - 1} onClick={() => setPage(cur + 1)} className={iconBtn}><ChevronRight aria-hidden="true" /></button>
+        </div>
+      </PreviewDock>
       <div className="min-w-0">
       <span className={`${heading} lg:!mt-0`}>Images per page</span>
       <Segmented label="Images per page" value={sheet.per_page} onChange={(v) => { update({ per_page: v }); setPage(0) }}

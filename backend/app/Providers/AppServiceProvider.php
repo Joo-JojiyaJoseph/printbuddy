@@ -46,8 +46,10 @@ class AppServiceProvider extends ServiceProvider
             return new OfficeHtmlBridge((string) $c['soffice_path'], (int) $c['timeout_seconds'], storage_path('app/conversion'));
         });
 
-        $this->app->singleton(PrintFileComposer::class, function () {
-            $c = config('printbuddy.printing');
+        $this->app->singleton(\App\Support\Integrations::class, fn ($app) => new \App\Support\Integrations($app->make(Settings::class)));
+
+        $this->app->singleton(PrintFileComposer::class, function ($app) {
+            $c = $app->make(\App\Support\Integrations::class)->printing();
 
             return new PrintFileComposer((string) $c['pdftoppm_path'], (int) $c['dpi'], (int) $c['timeout_seconds'], (int) config('printbuddy.defaults.max_pages'));
         });
@@ -56,7 +58,7 @@ class AppServiceProvider extends ServiceProvider
             $app->make(PrintFileComposer::class), (string) config('printbuddy.printing.pdfunite_path')));
 
         $this->app->singleton(PrinterDriver::class, function ($app) {
-            $c = config('printbuddy.printing');
+            $c = $app->make(\App\Support\Integrations::class)->printing(); // admin choices first, then .env
             if ($c['driver'] === 'file' && $app->environment('production')) {
                 throw new \RuntimeException('PRINT_DRIVER=file does not print; set PRINT_DRIVER=cups or sumatra in production.');
             }
@@ -70,8 +72,9 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(PaymentProvider::class, function ($app) {
             $cfg = config('printbuddy.payment');
-            if ($cfg['provider'] === 'razorpay') {
-                $rz = $cfg['razorpay'];
+            $integrations = $app->make(\App\Support\Integrations::class);
+            if ($integrations->paymentProvider() === 'razorpay') {
+                $rz = $integrations->razorpay();
 
                 return new RazorpayProvider($rz['key_id'], $rz['key_secret'], $rz['webhook_secret'], $rz['base_url'],
                     $app->make(Settings::class)->int('payment_ttl_minutes') * 60);
@@ -89,7 +92,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(PaymentStore::class, fn ($app) => new EloquentPaymentStore(
-            (string) config('printbuddy.payment.provider'), $app->make(AuditLogger::class)));
+            $app->make(\App\Support\Integrations::class)->paymentProvider(), $app->make(AuditLogger::class)));
 
         $this->app->singleton(PaymentProcessor::class, fn ($app) => new PaymentProcessor(
             $app->make(PaymentProvider::class), $app->make(PaymentStore::class), (string) config('printbuddy.payment.webhook_secret')));

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import CustomerLayout from '../layouts/CustomerLayout'
 import Button from '../components/ui/Button'
 import EditedPreview from '../components/EditedPreview'
+import PreviewDock from '../components/PreviewDock'
 import PrintSettingsForm from '../components/PrintSettingsForm'
 import QuoteCard from '../components/QuoteCard'
 import { useSession } from '../context/SessionContext'
@@ -42,25 +43,25 @@ export default function Configure() {
         <Button disabled={!quote || loading || !!rangeError} onClick={() => navigate(`/s/${token}/review/${doc.id}`)}>{quote ? `Review · ${formatINR(quote.total_paise)}` : 'Review'}</Button>
       </>}>
       <div className="mx-auto max-w-3xl md:grid md:max-w-none md:grid-cols-2 md:items-start md:gap-6 lg:gap-10">
-      <div className="min-w-0 md:sticky md:top-4">
-      <div className="mx-auto w-[58%] max-w-[240px] py-2 md:w-full md:max-w-[380px]">
-        {/* The preview follows paper size, orientation, colour and scaling, edited or not. */}
-        <EditedPreview doc={doc} edits={settings.edits ?? previewEdits(doc, settings.scaling, n)} page={cur} settings={settings}
-          images={docs.filter((d) => isImageKind(d.kind) && d.status === 'ready')} />
-      </div>
-      {settings.duplex && (
-        <p role="status" className="m-0 mb-1 text-center text-xs font-bold text-[var(--muted)]">
-          Double-sided: sheet {Math.ceil(cur / 2)} of {Math.ceil(sheets / 2)} · {cur % 2 === 1 ? 'front' : 'back'} side
+      <PreviewDock title={`${doc.original_name} preview`}
+        preview={<EditedPreview doc={doc} edits={settings.edits ?? previewEdits(doc, settings.scaling, n)} page={cur} settings={settings}
+          images={docs.filter((d) => isImageKind(d.kind) && d.status === 'ready')} />}>
+        <p className="m-0 mb-1 truncate text-xs font-semibold text-[var(--muted)] md:hidden">
+          {settings.paper_size} · {settings.color_mode === 'color' ? 'Colour' : 'Black & white'} · {settings.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · {settings.copies} {settings.copies === 1 ? 'copy' : 'copies'}
         </p>
-      )}
-      {sheets > 1 && (
-        <div className="mb-3 flex items-center justify-center gap-4 text-sm font-bold text-[var(--muted)]">
-          <button type="button" aria-label="Previous page" disabled={cur <= 1} onClick={() => setPage(cur - 1)} className="grid size-11 place-items-center rounded-2xl border border-[var(--border)] disabled:opacity-30"><ChevronLeft aria-hidden="true" /></button>
-          <span>{perSheet > 1 ? 'Sheet' : 'Page'} {cur} of {sheets}</span>
-          <button type="button" aria-label="Next page" disabled={cur >= sheets} onClick={() => setPage(cur + 1)} className="grid size-11 place-items-center rounded-2xl border border-[var(--border)] disabled:opacity-30"><ChevronRight aria-hidden="true" /></button>
-        </div>
-      )}
-      </div>
+        {settings.duplex && (
+          <p role="status" className="m-0 mb-1 text-xs font-bold text-[var(--muted)] md:text-center">
+            Double-sided: sheet {Math.ceil(cur / 2)} of {Math.ceil(sheets / 2)} · {cur % 2 === 1 ? 'front' : 'back'} side
+          </p>
+        )}
+        {sheets > 1 ? (
+          <div className="flex items-center gap-2 text-sm font-bold text-[var(--muted)] md:mb-3 md:justify-center md:gap-4">
+            <button type="button" aria-label="Previous page" disabled={cur <= 1} onClick={() => setPage(cur - 1)} className="grid size-11 place-items-center rounded-2xl border border-[var(--border)] disabled:opacity-30"><ChevronLeft aria-hidden="true" /></button>
+            <span>{perSheet > 1 ? 'Sheet' : 'Page'} {cur} of {sheets}</span>
+            <button type="button" aria-label="Next page" disabled={cur >= sheets} onClick={() => setPage(cur + 1)} className="grid size-11 place-items-center rounded-2xl border border-[var(--border)] disabled:opacity-30"><ChevronRight aria-hidden="true" /></button>
+          </div>
+        ) : <p className="m-0 text-xs text-[var(--muted)] md:hidden">Tap the preview to enlarge it.</p>}
+      </PreviewDock>
       <div className="min-w-0">
       <SmartAssistant state={analysis.state} insights={analysis.insights} settings={settings} isImage={image} pageCount={n} onApply={(patch) => setSettings({ ...settings, ...patch })} />
       <PrintSettingsForm value={settings} onChange={({ edits: _e, ...rest }) => setSettings(rest)} rangeError={rangeError} pageCount={n} showLayout={!image} />

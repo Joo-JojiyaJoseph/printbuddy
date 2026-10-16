@@ -27,6 +27,16 @@ class Settings
         'duplex_discount_bps' => 'integer|min:0|max:10000',
         'service_fee_paise' => 'integer|min:0|max:100000000',
         'tax_bps' => 'integer|min:0|max:10000',
+        'printer_name' => 'nullable|string|max:120',
+        // Payment gateway and printer connection: edited only through Admin > Payment gateway / Printer (see Integrations).
+        'payment_provider' => 'nullable|string|max:20',
+        'razorpay_key_id' => 'nullable|string|max:80',
+        'razorpay_key_secret' => 'nullable|string|max:600',
+        'razorpay_webhook_secret' => 'nullable|string|max:600',
+        'print_driver' => 'nullable|string|max:20',
+        'sumatra_path' => 'nullable|string|max:300',
+        'lp_path' => 'nullable|string|max:300',
+        'pdftoppm_path' => 'nullable|string|max:300', // set from Admin > Printers; empty = use PRINTER_NAME from .env
     ];
 
     public const ALL_TYPES = ['pdf', 'jpg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'];

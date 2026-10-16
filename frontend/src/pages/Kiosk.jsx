@@ -14,7 +14,7 @@ export default function Kiosk() {
 
   const start = useCallback(async () => {
     setPhase('creating')
-    try { setSession(await api.createSession('demo')); setPhase('waiting') } catch { setPhase('error') }
+    try { setSession(await api.createSession(new URLSearchParams(window.location.search).get('k') || 'demo')); setPhase('waiting') } catch { setPhase('error') }
   }, [])
   useEffect(() => { start() }, [start])
 
@@ -51,12 +51,12 @@ export default function Kiosk() {
           </span>
         </div>
         {phase !== 'connected' && (<>
-        <h1 className="m-0 text-[clamp(22px,4vw,30px)] font-bold leading-tight tracking-tight">Scan to start printing</h1>
+        <h1 className="m-0 text-[clamp(1.375rem,4vw,1.875rem)] font-bold leading-tight tracking-tight">Scan to start printing</h1>
         <p className="mb-5 mt-2 text-[var(--muted)]">Point your phone camera at the code. No app to install.</p>
         </>)}
 
         {phase === 'error' && <p role="alert" className="text-danger">Couldn't start a session.</p>}
-        {phase === 'creating' && <div className="mx-auto size-[252px] animate-pulse rounded-3xl bg-[var(--hi)]" role="status" aria-label="Creating session" />}
+        {phase === 'creating' && <div className="mx-auto size-[15.75rem] animate-pulse rounded-3xl bg-[var(--hi)]" role="status" aria-label="Creating session" />}
         {session && phase === 'waiting' && (
           <div className={`mx-auto w-fit rounded-[26px] bg-white p-3.5 shadow-[0_0_0_6px_var(--border)] animate-pulse-ring ${expired ? 'opacity-30' : ''}`}>
             <QRCodeSVG value={url} size={224} level="M" fgColor="#10242B" bgColor="#ffffff" title="Session QR code" />

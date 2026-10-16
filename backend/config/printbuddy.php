@@ -26,6 +26,14 @@ return [
         'duplex_discount_bps' => 1000,
         'service_fee_paise' => 0,
         'tax_bps' => 0,
+        'printer_name' => '',
+    ],
+
+    // First admin login, created by `php artisan db:seed`. Set ADMIN_PASSWORD in .env; an existing account is never overwritten.
+    'admin' => [
+        'name' => env('ADMIN_NAME', 'Admin'),
+        'email' => env('ADMIN_EMAIL', 'admin@taprint.test'),
+        'password' => env('ADMIN_PASSWORD', ''),
     ],
 
     'conversion' => [

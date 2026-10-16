@@ -10,7 +10,7 @@ export default function Button({ variant = 'primary', loading = false, className
     <button
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`relative min-h-[48px] flex-1 overflow-hidden rounded-[var(--radius-btn)] px-3 text-[15px] leading-tight sm:px-5 font-bold transition-transform duration-100 active:scale-95 disabled:opacity-40 ${variants[variant]} ${className}`}
+      className={`relative min-h-[3rem] flex-1 overflow-hidden rounded-[var(--radius-btn)] px-3 text-[0.9375rem] leading-tight sm:px-5 font-bold transition-transform duration-100 active:scale-95 disabled:opacity-40 ${variants[variant]} ${className}`}
       {...props}
     >
       {loading ? 'Please wait…' : children}

@@ -71,6 +71,7 @@ require __DIR__ . '/editing.php';
 require __DIR__ . '/printing.php';
 require __DIR__ . '/uploads.php';
 require __DIR__ . '/security.php';
+require __DIR__ . '/admin.php';
 
 echo "\n$pass passed, $fail failed\n";
 exit($fail ? 1 : 0);

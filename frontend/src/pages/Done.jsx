@@ -87,7 +87,7 @@ export default function Done() {
             <p className="m-0 flex items-center gap-2 truncate font-bold"><Printer aria-hidden="true" size={16} className="shrink-0" />{order.document.name}</p>
             <dl className="m-0 mt-2">
               {describeSettings(order.settings).map(([k, v]) => (
-                <div key={k} className="flex justify-between border-b border-dashed border-[var(--border)] py-2 text-[15px] last:border-0">
+                <div key={k} className="flex justify-between border-b border-dashed border-[var(--border)] py-2 text-[0.9375rem] last:border-0">
                   <dt className="text-[var(--muted)]">{k}</dt><dd className="m-0 font-bold">{v}</dd>
                 </div>
               ))}

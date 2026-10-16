@@ -9,7 +9,7 @@ const FEATURES = [
 /** Illustration: original printer artwork (inline SVG, no external image). */
 function PrinterArt() {
   return (
-    <svg viewBox="0 0 360 260" role="img" aria-label="A printer printing a photo" className="mx-auto w-full max-w-[380px]">
+    <svg viewBox="0 0 360 260" role="img" aria-label="A printer printing a photo" className="mx-auto w-full max-w-[23.75rem]">
       <defs>
         <linearGradient id="pa-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#e3e8d0" /></linearGradient>
         <linearGradient id="pa-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#9fdadd" /><stop offset="1" stopColor="#e3f3f3" /></linearGradient>
@@ -39,16 +39,16 @@ export default function HeroPanel() {
       <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-bold text-[var(--text)] shadow-sm">
         <i className="size-2.5 rounded-full bg-mint" /> Printer ready
       </span>
-      <h1 className="mb-2 mt-5 text-[clamp(28px,3vw,40px)] font-bold leading-[1.1] tracking-tight">
+      <h1 className="mb-2 mt-5 text-[clamp(1.75rem,3vw,2.5rem)] font-bold leading-[1.1] tracking-tight">
         Print anything,<br />in <span className="bg-gradient-to-r from-accent to-accent-2 bg-clip-text text-transparent">seconds.</span>
       </h1>
-      <p className="m-0 max-w-md text-[15px] leading-relaxed text-[var(--muted)]">Upload your files, choose your print options, pay securely and collect. No app to install.</p>
+      <p className="m-0 max-w-md text-[0.9375rem] leading-relaxed text-[var(--muted)]">Upload your files, choose your print options, pay securely and collect. No app to install.</p>
       <PrinterArt />
       <ul className="stagger m-0 mt-2 grid list-none gap-3 p-0">
         {FEATURES.map(({ icon: Icon, title, text, tint }) => (
           <li key={title} className="flex items-center gap-3">
             <span className={`grid size-11 flex-none place-items-center rounded-2xl ${tint}`}><Icon size={22} aria-hidden="true" /></span>
-            <span><b className="block text-[15px]">{title}</b><span className="text-[13px] text-[var(--muted)]">{text}</span></span>
+            <span><b className="block text-[0.9375rem]">{title}</b><span className="text-[0.8125rem] text-[var(--muted)]">{text}</span></span>
           </li>
         ))}
       </ul>

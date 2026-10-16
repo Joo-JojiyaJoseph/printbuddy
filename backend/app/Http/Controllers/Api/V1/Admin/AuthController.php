@@ -14,7 +14,7 @@ class AuthController extends Controller
 {
     public function __construct(private readonly AuditLogger $audit) {}
 
-    /** POST /admin/auth/login — Sanctum personal access token. Rate limited (admin-login). */
+    /** POST /admin/login — Sanctum personal access token. Rate limited (admin-login). */
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([

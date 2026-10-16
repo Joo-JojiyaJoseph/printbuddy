@@ -3,7 +3,7 @@ import { formatINR } from '../utils/format'
 import { IS_MOCK } from '../services/api'
 
 const Row = ({ k, v, total }) => (
-  <div className={`flex justify-between border-b border-dashed border-[var(--border)] py-2 ${total ? 'border-0 text-lg font-bold' : 'text-[15px]'}`}><span>{k}</span><span>{v}</span></div>
+  <div className={`flex justify-between border-b border-dashed border-[var(--border)] py-2 ${total ? 'border-0 text-lg font-bold' : 'text-[0.9375rem]'}`}><span>{k}</span><span>{v}</span></div>
 )
 
 export default function QuoteCard({ quote, loading, error }) {

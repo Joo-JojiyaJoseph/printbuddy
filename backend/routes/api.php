@@ -99,6 +99,11 @@ Route::prefix('v1/admin')->group(function () {
         Route::get('/sessions/{id}', [Admin\SessionController::class, 'show']);
         Route::get('/pricing', [Admin\PricingController::class, 'show']);
         Route::get('/settings', [Admin\SettingController::class, 'show']);
+        Route::get('/printer', [Admin\PrinterController::class, 'show']);
+        Route::get('/reports/sales', [Admin\ReportController::class, 'sales']);
+        Route::get('/reports/orders.csv', [Admin\ReportController::class, 'ordersCsv'])->middleware('throttle:heavy');
+        Route::get('/kiosks', [Admin\KioskController::class, 'index']);
+        Route::get('/audit', [Admin\AuditController::class, 'index']);
     });
 
     Route::middleware(['auth:sanctum', 'role:admin,operator'])->group(function () {
@@ -106,10 +111,21 @@ Route::prefix('v1/admin')->group(function () {
         Route::post('/orders/{reference}/cancel', [Admin\OrderController::class, 'cancel']);
         Route::post('/payments/{id}/reconcile', [Admin\PaymentController::class, 'reconcile']);
         Route::post('/sessions/{id}/revoke', [Admin\SessionController::class, 'revoke']);
+        Route::post('/printer/test', [Admin\PrinterController::class, 'test'])->middleware('throttle:heavy');
     });
 
     Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::put('/pricing', [Admin\PricingController::class, 'update']);
         Route::put('/settings', [Admin\SettingController::class, 'update']);
+        Route::put('/printer', [Admin\PrinterController::class, 'update']);
+        Route::get('/integrations', [Admin\IntegrationController::class, 'show']);
+        Route::put('/integrations', [Admin\IntegrationController::class, 'update']);
+        Route::post('/integrations/payment/test', [Admin\IntegrationController::class, 'testPayment'])->middleware('throttle:heavy');
+        Route::post('/kiosks', [Admin\KioskController::class, 'store']);
+        Route::put('/kiosks/{id}', [Admin\KioskController::class, 'update']);
+        Route::get('/users', [Admin\UserController::class, 'index']);
+        Route::post('/users', [Admin\UserController::class, 'store']);
+        Route::put('/users/{id}', [Admin\UserController::class, 'update']);
+        Route::delete('/users/{id}', [Admin\UserController::class, 'destroy']);
     });
 });

@@ -30,6 +30,6 @@ function NupPreview({ doc, edits, page, settings, grayscale, perSheet }) {
 function PagePreview({ doc, edits, page, settings, grayscale }) {
   const { pdf, error } = usePdfDocument(isImageKind(doc.kind) ? null : doc.preview_url)
   if (error) return <p role="alert" className="p-6 text-center text-danger">{error}</p>
-  return <PageSheet pdf={pdf} item={edits.pages[page - 1]} ratio={paperRatio(settings.paper_size, settings.orientation)} paperMm={paperMm(settings.paper_size, settings.orientation)} renderWidth={520}
+  return <PageSheet pdf={pdf} item={edits.pages[page - 1]} ratio={paperRatio(settings.paper_size, settings.orientation)} paperMm={paperMm(settings.paper_size, settings.orientation)} renderWidth={760}
     grayscale={grayscale} number={page} total={edits.pages.length} stamp={edits.stamp} label={`Page ${page} preview`} />
 }

@@ -7,7 +7,7 @@ export const BRAND = { teal: '#14A3AE', brand: '#0E7C86', deep: '#0A4A52', coral
 
 export function Mark({ size = 40, title = 'Taprint' }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label={title} className="flex-none">
+    <svg style={{ width: `${size / 16}rem`, height: `${size / 16}rem` }} viewBox="0 0 64 64" role="img" aria-label={title} className="flex-none">
       <rect width="64" height="64" rx="16" fill={BRAND.deep} />
       {/* tap ripple */}
       <circle cx="50" cy="14" r="2.6" fill={BRAND.coral} />
@@ -37,10 +37,10 @@ export default function Logo({ size = 40, full = false, tagline = false }) {
     <span className="inline-flex min-w-0 items-center gap-2.5">
       <Mark size={size} title="" />
       <span className="flex min-w-0 flex-col items-start text-left leading-none">
-        <span className="whitespace-nowrap font-extrabold tracking-tight" style={{ fontSize: size * 0.58, color: BRAND.ink }}>
+        <span className="whitespace-nowrap font-extrabold tracking-tight" style={{ fontSize: `${(size * 0.58) / 16}rem`, color: BRAND.ink }}>
           Tap<span style={{ color: BRAND.brand }}>rint</span>
         </span>
-        {tagline && <span className="mt-1 font-semibold text-[var(--muted)]" style={{ fontSize: Math.max(11, size * 0.3) }}>Tap In. Print Out.</span>}
+        {tagline && <span className="mt-1 font-semibold text-[var(--muted)]" style={{ fontSize: `${Math.max(11, size * 0.3) / 16}rem` }}>Tap In. Print Out.</span>}
       </span>
     </span>
   )

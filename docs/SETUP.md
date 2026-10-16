@@ -47,7 +47,7 @@ The system does **not** store a UPI ID or a QR image of yours. A QR shown to a c
 *that* order, and the money must be confirmed by a payment provider, otherwise anyone could claim "I paid". So you connect a
 payment gateway account; the gateway creates the QR and the money settles into **your bank account** (set in the gateway dashboard).
 
-Built in: **Razorpay UPI QR**.
+Built in: **Razorpay UPI QR**. You can enter the keys in the admin panel (**Admin → Payment gateway**, encrypted, no `.env` editing) or use `.env` as below; the panel wins when both are set.
 1. Create a Razorpay account and complete KYC (business or individual). In *Settings → Bank account* add the bank account
    where you want the money. Razorpay settles to it.
 2. Dashboard → *Account & Settings → API keys* → generate keys. Put them in `backend/.env` (never in the frontend, never in git):

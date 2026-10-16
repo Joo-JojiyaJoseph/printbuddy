@@ -15,7 +15,7 @@ export default function PrintSettingsForm({ value, onChange, rangeError, pageCou
         <input id="page-range" type="text" inputMode="text" autoComplete="off" value={value.page_range}
           onChange={(e) => set('page_range', e.target.value)} placeholder="All pages, or e.g. 1-3,5"
           aria-invalid={!!rangeError} aria-describedby={rangeError ? 'range-error' : undefined}
-          className="min-h-[48px] w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 text-base" />
+          className="min-h-[3rem] w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 text-base" />
         {rangeError && <p id="range-error" role="alert" className="mt-1 text-sm text-danger">{rangeError}</p>}
       </div>
       <div>

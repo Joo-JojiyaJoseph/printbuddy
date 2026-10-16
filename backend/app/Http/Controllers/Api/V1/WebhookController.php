@@ -28,7 +28,7 @@ class WebhookController extends Controller
 
     public function handle(Request $request, string $provider): JsonResponse
     {
-        $configured = (string) config('printbuddy.payment.provider');
+        $configured = app(\App\Support\Integrations::class)->paymentProvider();
         if ($provider !== $configured) {
             return response()->json(['message' => 'Unknown provider.'], 404);
         }

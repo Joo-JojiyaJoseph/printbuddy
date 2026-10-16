@@ -22,7 +22,7 @@ export default function StepProgress({ current = 0 }) {
               <span className={`text-xs font-bold sm:text-xs ${i === phase ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>{s}</span>
             </span>
             {i < PHASES.length - 1 && (
-              <span className="relative mt-[17px] h-1 flex-1 overflow-hidden rounded-full bg-[var(--border)]">
+              <span className="relative mt-[1.0625rem] h-1 flex-1 overflow-hidden rounded-full bg-[var(--border)]">
                 <i className="absolute inset-y-0 left-0 block rounded-full bg-mint transition-all duration-700" style={{ width: i < phase ? '100%' : '0%' }} />
               </span>
             )}

@@ -58,14 +58,14 @@ export default function Pay() {
             {links ? (
               <div className="mt-5">
                 <a href={links.any} onClick={() => setLaunched(true)}
-                  className="flex min-h-[50px] w-full items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-gradient-to-r from-coral-deep to-[#E24A26] px-5 text-base font-bold text-white shadow-[0_10px_26px_rgba(214,64,31,.35)] active:scale-95">
+                  className="flex min-h-[3.125rem] w-full items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-gradient-to-r from-coral-deep to-[#E24A26] px-5 text-base font-bold text-white shadow-[0_10px_26px_rgba(214,64,31,.35)] active:scale-95">
                   <Smartphone aria-hidden="true" size={20} /> Pay now
                 </a>
                 <p className="mb-2 mt-4 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Or choose your UPI app</p>
                 <div className="grid grid-cols-2 gap-2.5">
                   {links.apps.map((a) => (
                     <a key={a.id} href={a.href} onClick={() => setLaunched(true)}
-                      className="flex min-h-12 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-[15px] font-bold active:scale-95">
+                      className="flex min-h-12 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-[0.9375rem] font-bold active:scale-95">
                       {a.label}
                     </a>
                   ))}
@@ -75,7 +75,7 @@ export default function Pay() {
               // Provider gave a non-UPI payload (hosted QR): nothing to deep-link, so the QR is the only way to pay.
               <div className="mx-auto my-4 w-fit rounded-3xl bg-white p-3.5">
                 {payment.qr_image_url
-                  ? <img src={payment.qr_image_url} alt="UPI payment QR code" width={220} height={220} className="block size-[220px] object-contain" />
+                  ? <img src={payment.qr_image_url} alt="UPI payment QR code" width={220} height={220} className="block size-[13.75rem] object-contain" />
                   : <QRCodeSVG value={payment.upi_uri ?? ''} size={200} level="M" fgColor="#10242B" bgColor="#ffffff" title="UPI payment QR code" />}
               </div>
             )}

@@ -23,7 +23,7 @@ class PaymentService
 
     public function providerName(): string
     {
-        return (string) config('printbuddy.payment.provider');
+        return app(\App\Support\Integrations::class)->paymentProvider();
     }
 
     /**

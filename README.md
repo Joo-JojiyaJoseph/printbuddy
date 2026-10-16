@@ -98,6 +98,9 @@ Combining files uses `pdfunite` (Poppler), else `qpdf`, else Ghostscript; instal
 - **You must still do in production:** serve over HTTPS, `APP_DEBUG=false`, a strong `APP_KEY`, a real `PAYMENT` provider secret in `.env` (never in the frontend), restrict CORS to your site, and keep the database file outside the web root.
 - The strict site CSP could not be tested in a real browser here; if a preview or PDF page is blocked after deploying, check the browser console for the blocked source and relax only that directive.
 
+## Admin panel
+Staff screens for orders, payments, printer, kiosks, reports, pricing and staff live at `/admin`. See [`docs/ADMIN.md`](docs/ADMIN.md) (the first admin is created by `php artisan db:seed` from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`).
+
 ## Setup: MySQL, payments, printer
 See [`docs/SETUP.md`](docs/SETUP.md) for MySQL on Windows, the "database is locked" fix, Razorpay keys and the QR, and printer settings.
 
