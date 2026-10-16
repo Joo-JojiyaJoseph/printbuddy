@@ -33,6 +33,7 @@ class LibreOfficeConverter implements DocumentConverter
             throw new ConversionException('Office document conversion is not available on this server.', retryable: true);
         }
 
+        @set_time_limit($this->timeoutSeconds + 30);
         $work = storage_path('app/conversion/'.bin2hex(random_bytes(8)));
         File::ensureDirectoryExists($work.'/in');
         File::ensureDirectoryExists($work.'/out');

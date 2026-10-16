@@ -50,6 +50,11 @@ class PrintOrder extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function printJob(): HasOne
+    {
+        return $this->hasOne(PrintJob::class);
+    }
+
     public function latestPayment(): HasOne
     {
         return $this->hasOne(Payment::class)->latestOfMany();

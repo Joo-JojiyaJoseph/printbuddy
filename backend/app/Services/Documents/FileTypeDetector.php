@@ -9,7 +9,7 @@ namespace App\Services\Documents;
 class FileTypeDetector
 {
     public const EXT_KIND = [
-        'pdf' => 'pdf', 'jpg' => 'jpg', 'jpeg' => 'jpg', 'png' => 'png', 'txt' => 'txt',
+        'pdf' => 'pdf', 'jpg' => 'jpg', 'jpeg' => 'jpg', 'jfif' => 'jpg', 'jpe' => 'jpg', 'png' => 'png', 'txt' => 'txt', // .jfif and .jpe are plain JPEG files
         'doc' => 'ole', 'xls' => 'ole', 'ppt' => 'ole', 'docx' => 'ooxml', 'xlsx' => 'ooxml', 'pptx' => 'ooxml',
     ];
 
@@ -31,10 +31,22 @@ class FileTypeDetector
     public function inspect(string $path, string $originalName, array $allowedExtensions): array
     {
         $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-        if (! isset(self::EXT_KIND[$ext])) {
-            return ['ok' => false, 'error' => 'This file type is not supported.', 'status' => 415];
+        $head0 = (string) file_get_contents($path, false, null, 0, 4096);
+        $real = $this->sniff($head0);
+        // A JPEG/PNG with a missing or unfamiliar extension is accepted by its content; a known-but-wrong one (PNG named .jpg) is still refused.
+        if (in_array($real, ['jpg', 'png'], true) && ! isset(self::EXT_KIND[$ext])) {
+            $ext = $real;
         }
-        $normalizedExt = $ext === 'jpeg' ? 'jpg' : $ext;
+        if (str_starts_with($head0, 'RIFF') && substr($head0, 8, 4) === 'WEBP') {
+            return ['ok' => false, 'error' => 'WebP images are not supported yet. Save the picture as JPG or PNG and upload it again.', 'status' => 415];
+        }
+        if (substr($head0, 4, 4) === 'ftyp' && in_array(substr($head0, 8, 4), ['heic', 'heix', 'mif1', 'heif'], true)) {
+            return ['ok' => false, 'error' => 'HEIC photos are not supported yet. Share or save the photo as JPG and upload it again.', 'status' => 415];
+        }
+        if (! isset(self::EXT_KIND[$ext])) {
+            return ['ok' => false, 'error' => 'This file type is not supported. Use PDF, JPG, PNG, Word, Excel, PowerPoint or text files.', 'status' => 415];
+        }
+        $normalizedExt = in_array($ext, ['jpeg', 'jfif', 'jpe'], true) ? 'jpg' : $ext;
         if (! in_array($normalizedExt, $allowedExtensions, true)) {
             return ['ok' => false, 'error' => strtoupper($normalizedExt).' uploads are currently disabled.', 'status' => 415];
         }

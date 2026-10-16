@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\V1\Admin\Concerns\PaginatesAndFilters;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\PrintOrder;
+use App\Jobs\PrintOrderJob;
 use App\Services\Orders\OrderService;
+use App\Services\Printing\PrintJobService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -21,7 +23,7 @@ class OrderController extends Controller
             'status' => ['nullable', Rule::in(PrintOrder::STATUSES)],
             'kiosk' => ['nullable', 'string', 'max:40'],
         ]);
-        $q = PrintOrder::query()->with(['document:id,original_name,page_count,kind', 'session:id,kiosk_id', 'session.kiosk:id,code,name', 'latestPayment']);
+        $q = PrintOrder::query()->with(['document:id,original_name,page_count,kind', 'session:id,kiosk_id', 'session.kiosk:id,code,name', 'latestPayment', 'printJob']);
         if (! empty($p['status'])) {
             $q->where('status', $p['status']);
         }
@@ -64,6 +66,20 @@ class OrderController extends Controller
         return response()->json(['data' => $this->summary($o->load(['document', 'session.kiosk', 'latestPayment']))]);
     }
 
+    /** Operators re-send a paid order whose automatic print failed. Never creates a second print of a sent job. */
+    public function retryPrint(string $reference, PrintJobService $printing): JsonResponse
+    {
+        $o = PrintOrder::query()->where('reference', $reference)->firstOrFail();
+        try {
+            $printing->reset($o, auth()->id());
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
+        PrintOrderJob::dispatchAfterResponse($o->id, true);
+
+        return response()->json(['data' => $this->summary($o->load(['document', 'session.kiosk', 'latestPayment', 'printJob']))]);
+    }
+
     private function summary(PrintOrder $o): array
     {
         return [
@@ -75,6 +91,8 @@ class OrderController extends Controller
             'pages' => $o->pricing_snapshot['pages_selected'] ?? null,
             'copies' => $o->print_settings['copies'] ?? null,
             'kiosk' => $o->session?->kiosk?->code,
+            'print_status' => $o->printJob?->status,
+            'print_failure' => $o->printJob?->failure_reason,
             'payment_status' => $o->latestPayment?->status,
             'paid_at' => $o->paid_at?->toIso8601String(),
             'created_at' => $o->created_at?->toIso8601String(),

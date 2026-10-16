@@ -21,6 +21,8 @@ class DocumentResource extends JsonResource
             'preview_url' => app(DocumentService::class)->previewUrl($this->resource),
             'failure_reason' => $this->failure_reason,
             'can_retry' => $this->canRetry(),
+            'can_edit_text' => app(DocumentService::class)->canEditText($this->resource),
+            'edited' => app(DocumentService::class)->isEdited($this->resource),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

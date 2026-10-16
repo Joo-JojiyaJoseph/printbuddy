@@ -37,7 +37,7 @@ final class RazorpayProvider implements PaymentProvider
         $closeBy = time() + $this->ttlSeconds;
         $res = $this->http()->post('/payments/qr_codes', [
             'type' => 'upi_qr',
-            'name' => 'PrintBuddy '.$orderReference,
+            'name' => 'Taprint '.$orderReference,
             'usage' => 'single_use',
             'fixed_amount' => true,
             'payment_amount' => $amountPaise,

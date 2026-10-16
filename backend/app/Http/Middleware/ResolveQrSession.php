@@ -30,6 +30,9 @@ class ResolveQrSession
 
             return response()->json(['message' => 'This session has expired.'], 410);
         }
+        if ($this->sessions->ownedByOther($session, $request->header('X-Device-Id'))) {
+            return response()->json(['message' => 'This QR code is already being used by another phone. Wait until that session ends, or ask the kiosk to cancel it.'], 423);
+        }
         $request->attributes->set('qr_session', $session);
 
         return $next($request);

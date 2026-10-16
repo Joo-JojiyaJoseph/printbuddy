@@ -51,10 +51,24 @@ class QrSessionService
         return rtrim(config('printbuddy.frontend_url'), '/').'/s/'.$token;
     }
 
-    public function claim(QrSession $session): void
+    /** The phone that first scanned the code owns the session. Only its id hash is stored. */
+    public static function deviceHash(?string $deviceId): ?string
+    {
+        return is_string($deviceId) && preg_match('/^[A-Za-z0-9_-]{16,80}$/', $deviceId) ? hash('sha256', $deviceId) : null;
+    }
+
+    /** True when another phone owns this session (a request without a device id, i.e. the kiosk screen, is never "another"). */
+    public function ownedByOther(QrSession $session, ?string $deviceId): bool
+    {
+        $mine = self::deviceHash($deviceId);
+
+        return $session->claimed_by !== null && $mine !== null && ! hash_equals($session->claimed_by, $mine);
+    }
+
+    public function claim(QrSession $session, ?string $deviceId = null): void
     {
         if ($session->claimed_at === null) {
-            $session->forceFill(['claimed_at' => now()])->save();
+            $session->forceFill(['claimed_at' => now(), 'claimed_by' => self::deviceHash($deviceId)])->save();
             $this->audit->log('session.claimed', $session);
         }
     }
@@ -66,6 +80,11 @@ class QrSessionService
         }
         $session->forceFill(['status' => QrSession::CANCELLED])->save();
         $this->audit->log('session.revoked', $session, ['reason' => $reason]);
+        // Privacy: when the customer ends the session, their files go in a few minutes, unless money is involved
+        // (a paid or in-progress payment still needs its document to print).
+        if ($reason === 'customer' && ! $session->orders()->whereIn('status', ['paid', 'awaiting_payment'])->exists()) {
+            $session->documents()->whereNull('deleted_at')->update(['delete_after' => now()->addMinutes(2)]);
+        }
     }
 
     /** Ensure the customer has time to finish a payment that outlives the session. */

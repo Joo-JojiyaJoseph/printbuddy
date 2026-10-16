@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import Backdrop from '../components/ui/Backdrop'
+import { Smartphone } from 'lucide-react'
+import Logo from '../components/ui/Logo'
 import Button from '../components/ui/Button'
 import { api } from '../services/api'
 import { useCountdown, mmss } from '../hooks/useCountdown'
@@ -16,39 +18,64 @@ export default function Kiosk() {
   }, [])
   useEffect(() => { start() }, [start])
 
+  // Poll while waiting for a phone AND while one is connected, so the kiosk notices when that session ends.
   useEffect(() => {
-    if (!session || phase !== 'waiting') return
+    if (!session || (phase !== 'waiting' && phase !== 'connected')) return
     const t = setInterval(async () => {
-      try { if ((await api.getSession(session.token)).claimed_at) setPhase('connected') } catch { /* expiry handled by countdown */ }
+      try {
+        const s = await api.getSession(session.token)
+        if (s.claimed_at && phase === 'waiting') setPhase('connected')
+      } catch (e) {
+        if (phase === 'connected' && (e.status === 410 || e.status === 401)) { setSession(null); start() } // customer finished or cancelled
+      }
     }, 2000)
     return () => clearInterval(t)
-  }, [session, phase])
+  }, [session, phase, start])
 
-  const expired = session && left === 0
+  const cancel = async () => {
+    try { if (session) await api.endSession(session.token) } catch { /* already over */ }
+    setSession(null); start()
+  }
+
+  const expired = session && phase === 'waiting' && left === 0
   const url = session ? `${window.location.origin}/s/${session.token}` : ''
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center p-4">
       <Backdrop />
-      <main className="relative z-10 w-full max-w-xl rounded-[36px] border border-[var(--border)] bg-[var(--card)] p-6 text-center backdrop-blur-xl shadow-[0_30px_80px_rgba(10,5,60,.35)] sm:p-9">
+      <main className="relative z-10 w-full max-w-xl rounded-[36px] border border-[var(--border)] bg-[var(--card)] p-6 text-center shadow-[var(--shadow)] sm:p-9">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-xl font-extrabold">🖨 PrintBuddy</span>
-          <span className="text-sm font-bold text-accent" role="status">
+          <Logo size={40} full tagline />
+          <span className="text-sm font-bold text-mint" role="status">
             {phase === 'connected' ? 'Phone connected' : expired ? 'Expired' : 'Kiosk #12 · Online'}
           </span>
         </div>
-        <h1 className="m-0 text-[clamp(26px,5vw,40px)] font-extrabold leading-tight tracking-tight">Scan to start printing</h1>
+        {phase !== 'connected' && (<>
+        <h1 className="m-0 text-[clamp(22px,4vw,30px)] font-bold leading-tight tracking-tight">Scan to start printing</h1>
         <p className="mb-5 mt-2 text-[var(--muted)]">Point your phone camera at the code. No app to install.</p>
+        </>)}
 
         {phase === 'error' && <p role="alert" className="text-danger">Couldn't start a session.</p>}
         {phase === 'creating' && <div className="mx-auto size-[252px] animate-pulse rounded-3xl bg-[var(--hi)]" role="status" aria-label="Creating session" />}
-        {session && phase !== 'creating' && (
+        {session && phase === 'waiting' && (
           <div className={`mx-auto w-fit rounded-[26px] bg-white p-3.5 shadow-[0_0_0_6px_var(--border)] animate-pulse-ring ${expired ? 'opacity-30' : ''}`}>
-            <QRCodeSVG value={url} size={224} level="M" fgColor="#1d1845" bgColor="#ffffff" title="Session QR code" />
+            <QRCodeSVG value={url} size={224} level="M" fgColor="#10242B" bgColor="#ffffff" title="Session QR code" />
+          </div>
+        )}
+        {session && phase === 'connected' && (
+          <div className="mx-auto grid w-full max-w-sm place-items-center gap-2 rounded-[26px] bg-gradient-to-br from-[#e3f3f3] to-[#e3f3f3] px-5 py-8" role="status">
+            <span className="grid size-20 place-items-center rounded-full bg-gradient-to-br from-accent to-accent-2 text-white shadow-[0_12px_30px_rgba(10,74,82,.35)]"><Smartphone size={38} aria-hidden="true" /></span>
+            <p className="m-0 mt-2 text-xl font-bold">A customer is using this kiosk</p>
+            <p className="m-0 text-sm text-[var(--muted)]">They are choosing files and paying on their phone. Please wait, or scan again when this screen shows a new code.</p>
           </div>
         )}
         {session && !expired && phase === 'waiting' && <p className="mt-4 text-sm text-[var(--muted)]">Session expires in <b>{mmss(left)}</b></p>}
-        {phase === 'connected' && <p className="mt-4 font-bold text-accent">Connected. Continue on your phone.</p>}
+        {phase === 'connected' && (
+          <>
+            <div className="mt-4 flex"><Button variant="ghost" onClick={cancel}>Cancel this session</Button></div>
+            <p className="mb-0 mt-2 text-xs text-[var(--muted)]">Another phone can scan only after this session ends.</p>
+          </>
+        )}
         {(expired || phase === 'error') && <div className="mt-5 flex"><Button onClick={start}>Get a new code</Button></div>}
         <p className="mb-0 mt-5 text-sm text-[var(--muted)]">Scan. Upload. Pay. Print.</p>
       </main>

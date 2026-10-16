@@ -30,7 +30,7 @@ class SessionController extends Controller
         /** @var QrSession $session */
         $session = $request->attributes->get('qr_session');
         if ($request->boolean('claim')) {
-            $this->sessions->claim($session);
+            $this->sessions->claim($session, $request->header('X-Device-Id'));
         }
 
         return new SessionResource($session);

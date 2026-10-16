@@ -25,7 +25,7 @@ final class PrintPricingService
 
     public function __construct(private readonly array $rules) {}
 
-    public function quote(int $pageCount, string $pageRange, int $copies, string $paperSize, string $colorMode, bool $duplex): array
+    public function quote(int $pageCount, string $pageRange, int $copies, string $paperSize, string $colorMode, bool $duplex, int $pagesPerSheet = 1): array
     {
         if ($copies < 1 || $copies > self::MAX_COPIES) {
             throw new InvalidArgumentException('Copies must be between 1 and ' . self::MAX_COPIES . '.');
@@ -34,7 +34,12 @@ final class PrintPricingService
             throw new InvalidArgumentException('Unsupported colour mode.');
         }
         $rate = $this->rateFor($paperSize, $colorMode);
-        $pages = count(PageRange::parse($pageRange, $pageCount));
+        if (! in_array($pagesPerSheet, PagePlan::PAGES_PER_SHEET, true)) {
+            throw new InvalidArgumentException('Choose 1, 2, 4, 6 or 9 pages per sheet.');
+        }
+        $selected = count(PageRange::parse($pageRange, $pageCount));
+        // N pages share one printed side, so the customer pays for the sides actually printed.
+        $pages = (int) ceil($selected / $pagesPerSheet);
 
         $discountBps = $duplex ? (int) ($this->rules['duplex_discount_bps'] ?? 0) : 0;
         $effectiveRate = $rate - intdiv($rate * $discountBps + 5000, 10000);
@@ -48,7 +53,9 @@ final class PrintPricingService
 
         return [
             'currency' => 'INR',
-            'pages_selected' => $pages,
+            'pages_selected' => $selected,
+            'pages_per_sheet' => $pagesPerSheet,
+            'sides_per_copy' => $pages,
             'copies' => $copies,
             'billable_sides' => $sides,
             'sheets' => $sheets,

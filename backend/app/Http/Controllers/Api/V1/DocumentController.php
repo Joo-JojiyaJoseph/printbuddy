@@ -19,6 +19,12 @@ class DocumentController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->documents->purgeExpiredThrottled();
+        // A worker that died or never ran leaves a file "preparing" forever. After 5 minutes say so instead of spinning.
+        $this->session($request)->documents()
+            ->whereIn('status', [Document::UPLOADED, Document::CONVERTING])
+            ->where('updated_at', '<', now()->subMinutes(5))
+            ->update(['status' => Document::FAILED, 'failure_reason' => 'Preparing this file took too long. Remove it and upload it again.']);
         $docs = $this->session($request)->documents()->orderBy('created_at')->get();
 
         return DocumentResource::collection($docs);
@@ -29,6 +35,14 @@ class DocumentController extends Controller
         $doc = $this->documents->store($this->session($request), $request->file('file'));
 
         return (new DocumentResource($doc))->response()->setStatusCode(201);
+    }
+
+    /** POST /documents/merge — combine the chosen files into one new PDF document. */
+    public function merge(Request $request): JsonResponse
+    {
+        $data = $request->validate(['document_ids' => ['required', 'array', 'min:2', 'max:20'], 'document_ids.*' => ['required', 'string', 'max:64']]);
+
+        return (new DocumentResource($this->documents->merge($this->session($request), $data['document_ids'])))->response()->setStatusCode(201);
     }
 
     public function show(Request $request, string $id): DocumentResource
@@ -46,6 +60,26 @@ class DocumentController extends Controller
     public function retry(Request $request, string $id): DocumentResource
     {
         return new DocumentResource($this->documents->retry($this->find($request, $id)));
+    }
+
+    /** POST /documents/{id}/editable — HTML for the text editor (Word, PDF text, TXT). */
+    public function editable(Request $request, string $id): JsonResponse
+    {
+        return response()->json(['data' => $this->documents->editableHtml($this->find($request, $id))]);
+    }
+
+    /** PUT /documents/{id}/content — save edited HTML as a new print PDF. */
+    public function saveContent(Request $request, string $id): DocumentResource
+    {
+        $data = $request->validate(['html' => ['required', 'string', 'max:2000000']]);
+
+        return new DocumentResource($this->documents->saveEditedContent($this->find($request, $id), $data['html']));
+    }
+
+    /** POST /documents/{id}/revert — discard text edits. */
+    public function revert(Request $request, string $id): DocumentResource
+    {
+        return new DocumentResource($this->documents->revertEdits($this->find($request, $id)));
     }
 
     /**

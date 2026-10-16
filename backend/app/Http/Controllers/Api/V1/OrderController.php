@@ -39,7 +39,7 @@ class OrderController extends Controller
 
     public function show(Request $request, string $reference): OrderResource
     {
-        return new OrderResource($this->find($request, $reference)->load(['document', 'latestPayment']));
+        return new OrderResource($this->find($request, $reference)->load(['document', 'latestPayment', 'printJob']));
     }
 
     public function status(Request $request, string $reference): JsonResponse

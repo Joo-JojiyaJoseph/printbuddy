@@ -67,6 +67,8 @@ class Document extends Model
     /** Documents whose retention window has passed and whose file is still on disk. */
     public function scopeDueForPurge($q)
     {
-        return $q->whereNull('deleted_at')->where('delete_after', '<=', now());
+        return $q->whereNull('deleted_at')->where('delete_after', '<=', now())
+            // never delete a file a paid order is still waiting to print
+            ->whereDoesntHave('orders.printJob', fn ($j) => $j->whereIn('status', PrintJob::IN_FLIGHT));
     }
 }

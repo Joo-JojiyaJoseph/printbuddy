@@ -3,10 +3,10 @@ import { api } from '../services/api'
 import { parsePageRange } from '../utils/pageRange'
 
 /** Debounced server quote. The server's number is the only price ever displayed. */
-export function useQuote(token, doc, settings) {
+export function useQuote(token, doc, settings, pageCount = doc?.page_count) {
   const [state, setState] = useState({ quote: null, error: null, rangeError: null, loading: false })
   const key = JSON.stringify(settings)
-  const id = doc?.id, status = doc?.status, pages = doc?.page_count
+  const id = doc?.id, status = doc?.status, pages = pageCount
 
   useEffect(() => {
     if (!id || status !== 'ready') return

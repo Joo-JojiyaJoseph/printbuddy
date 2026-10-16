@@ -1,6 +1,8 @@
 import { ApiError } from './errors'
+import { deviceId } from './deviceId'
 import { validateFile, LIMITS } from '../utils/fileValidation'
 import { quoteFor, RULES } from './mockPricing'
+import { isImageKind, outputPageCount, validateEdits } from '../utils/pagePlan'
 
 // In-browser stand-in for the Laravel API (same contract as docs/openapi.yaml).
 // Sessions persist in localStorage so a QR link opened in a second tab works; documents stay in memory.
@@ -28,7 +30,7 @@ async function finalize(token, doc, file) {
     try {
       const { loadPdfjs } = await import('../utils/pdf')
       const pdfjs = await loadPdfjs()
-      const pdf = await pdfjs.getDocument(URL.createObjectURL(file)).promise
+      const pdf = await pdfjs.getDocument({ url: URL.createObjectURL(file) }).promise
       Object.assign(live, { page_count: pdf.numPages, preview_url: objectUrl(file), status: 'ready' })
     } catch {
       Object.assign(live, { status: 'failed', failure_reason: 'This PDF could not be read. It may be damaged or password-protected.' })
@@ -52,8 +54,17 @@ export const mockApi = {
   async getSession(token, { claim = false } = {}) {
     await delay(80)
     const s = activeSession(token)
-    if (claim && !s.claimed_at) { s.claimed_at = new Date().toISOString(); save({ ...load(), [token]: s }) }
+    if (claim) {
+      const me = deviceId()
+      if (s.claimed_by && s.claimed_by !== me) throw new ApiError(423, 'This QR code is already being used by another phone.')
+      if (!s.claimed_at) { s.claimed_at = new Date().toISOString(); s.claimed_by = me; save({ ...load(), [token]: s }) }
+    }
     return s
+  },
+  async endSession(token) {
+    const all = load()
+    if (all[token]) { all[token].expires_at = new Date(0).toISOString(); save(all) }
+    return null
   },
   async listDocuments(token) {
     activeSession(token)
@@ -79,14 +90,43 @@ export const mockApi = {
     if (d?.preview_url) { try { URL.revokeObjectURL(d.preview_url) } catch { /* noop */ } }
     docs.set(token, list.filter((x) => x.id !== id))
   },
+  /** Demo only: the real backend joins the files into one PDF; here a combined entry just sums the pages. */
+  async mergeDocuments(token, ids) {
+    activeSession(token)
+    const list = docs.get(token) ?? []
+    const parts = ids.map((id) => list.find((d) => d.id === id))
+    if (parts.length < 2 || parts.some((d) => !d || d.status !== 'ready')) throw new ApiError(409, 'Wait until every selected file has finished preparing.')
+    const doc = { id: hex().slice(0, 12), original_name: `Combined (${parts.length} files).pdf`, kind: 'pdf', size_bytes: parts.reduce((n, d) => n + d.size_bytes, 0),
+      status: 'ready', page_count: parts.reduce((n, d) => n + d.page_count, 0), preview_url: parts[0].preview_url, failure_reason: null }
+    docs.set(token, [...list, doc])
+    return { ...doc }
+  },
   async quote(token, { document_id, settings }) {
     await delay(120)
     activeSession(token)
     const d = (docs.get(token) ?? []).find((x) => x.id === document_id)
     if (!d) throw new ApiError(404, 'Document not found in this session.')
     if (d.status !== 'ready') throw new ApiError(409, 'Document is not ready yet.')
-    try { return quoteFor(d.page_count, settings) } catch (e) { throw new ApiError(422, e.message) }
+    try { return priceWithEdits(token, d, settings).quote } catch (e) { throw new ApiError(422, e.message) }
   },
+  async getEditable() {
+    throw new ApiError(501, 'Text editing needs the real server and is not available in demo mode.')
+  },
+  async saveDocumentContent() {
+    throw new ApiError(501, 'Text editing needs the real server and is not available in demo mode.')
+  },
+  async revertDocument() {
+    throw new ApiError(501, 'Text editing needs the real server and is not available in demo mode.')
+  },
+}
+
+/** Mirrors the server: validate edits against the real document, then bill the OUTPUT pages. */
+function priceWithEdits(token, d, settings) {
+  const imageIds = isImageKind(d.kind) ? (docs.get(token) ?? []).filter((x) => isImageKind(x.kind) && x.status === 'ready').map((x) => x.id) : []
+  const edits = validateEdits(settings.edits ?? null, d, imageIds)
+  // Images have their own sheet layout; pages per sheet is for documents (as on the server).
+  const priced = isImageKind(d.kind) ? { ...settings, pages_per_sheet: 1 } : settings
+  return { edits, quote: { ...quoteFor(outputPageCount(d, edits), priced), output_pages: outputPageCount(d, edits) } }
 }
 
 // ---- Orders and payments (mirror of backend OrderStateMachine + PaymentProcessor rules) ----
@@ -106,14 +146,26 @@ const move = (order, to) => {
   order.status = to
 }
 const refCode = () => 'PB-' + hex().slice(0, 6).toUpperCase()
-const upiUri = (ref, paise) => `upi://pay?pa=sandbox@upi&pn=PrintBuddy&am=${(paise / 100).toFixed(2)}&cu=INR&tr=${ref}`
+const upiUri = (ref, paise) => `upi://pay?pa=sandbox@upi&pn=Taprint&am=${(paise / 100).toFixed(2)}&cu=INR&tr=${ref}`
 const ownedOrder = (token, ref) => {
   activeSession(token)
   const o = orders.get(ref)
   if (!o || o.token !== token) throw new ApiError(404, 'Order not found.') // same answer for "missing" and "someone else's"
   return o
 }
-const publicOrder = ({ token: _t, ...o }) => ({ ...o })
+/** Mock of the print job that follows a verified payment: queued → preparing → sent, by time since payment. */
+const PRINT_MS = Number(globalThis.__PB_PRINT_MS ?? 1500)
+const printState = (o) => {
+  if (o.status !== 'paid') return undefined
+  const age = Date.now() - Date.parse(o.paid_at)
+  const status = age < PRINT_MS / 2 ? 'queued' : age < PRINT_MS ? 'preparing' : 'sent'
+  const message = status === 'sent' ? 'Sent to the printer. Collect your pages from the tray.' : 'Preparing your pages for the printer…'
+  return { status, message, files_erased_at: status === 'sent' ? new Date(Date.parse(o.paid_at) + 10 * 60000).toISOString() : null }
+}
+const publicOrder = ({ token: _t, ...o }) => {
+  const print = printState(o)
+  return print ? { ...o, print } : { ...o }
+}
 const publicPayment = (p) => ({ ...p })
 
 /** Server-side verification: only the provider's record can mark an order paid, and only if the amount matches. */
@@ -146,13 +198,13 @@ mockApi.createOrder = async (token, { document_id, settings }) => {
   activeSession(token)
   const d = (docs.get(token) ?? []).find((x) => x.id === document_id)
   if (!d || d.status !== 'ready') throw new ApiError(409, 'Document is not ready.')
-  let q
-  try { q = quoteFor(d.page_count, settings) } catch (e) { throw new ApiError(422, e.message) }
+  let q, edits
+  try { ({ quote: q, edits } = priceWithEdits(token, d, settings)) } catch (e) { throw new ApiError(422, e.message) }
   const order = {
     token, reference: refCode(), status: 'configured', currency: 'INR', paid_at: null,
     created_at: new Date().toISOString(),
     document: { id: d.id, name: d.original_name, page_count: d.page_count },
-    settings: { ...settings },
+    settings: { ...settings, edits },
     pricing_snapshot: { ...q, rules_snapshot: structuredClone(RULES) },
     total_paise: q.total_paise,
   }

@@ -1,7 +1,7 @@
 <?php
 
 /*
- | PrintBuddy runtime configuration. Operational limits that an administrator may change at
+ | Taprint runtime configuration. Operational limits that an administrator may change at
  | runtime live in the `settings` table (see App\Support\Settings); the values here are the
  | defaults used until an admin overrides them, plus deployment-only knobs.
  */
@@ -34,6 +34,21 @@ return [
         'soffice_path' => env('SOFFICE_PATH', 'soffice'),
         'timeout_seconds' => (int) env('CONVERSION_TIMEOUT', 90),
         'max_attempts' => 3,
+    ],
+
+    'printing' => [
+        // 'file' = save the print-ready PDF to a folder (development, no printer); 'cups' = lp (Linux/macOS); 'sumatra' = SumatraPDF (Windows).
+        'driver' => env('PRINT_DRIVER', 'file'),
+        'printer' => env('PRINTER_NAME', ''),           // empty = the system default printer
+        'lp_path' => env('LP_PATH', ''),
+        'sumatra_path' => env('SUMATRA_PATH', ''),
+        'pdftoppm_path' => env('PDFTOPPM_PATH', ''),
+        'pdfunite_path' => env('PDFUNITE_PATH', ''),
+        'dpi' => (int) env('PRINT_DPI', 300),
+        'timeout_seconds' => (int) env('PRINT_TIMEOUT', 120),
+        // Privacy: files of a printed order are erased this many minutes after the print was sent (0 = keep until normal retention).
+        'erase_after_minutes' => (int) env('PRINT_ERASE_MINUTES', 10),
+        'output_dir' => env('PRINT_OUTPUT_DIR', ''),     // file driver; defaults to storage/app/printed
     ],
 
     'payment' => [

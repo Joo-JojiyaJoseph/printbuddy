@@ -28,9 +28,9 @@ test('shows the exact server amount, then confirmation only after verified payme
   const order = await setup()
   expect(await screen.findByText('₹4.00')).toBeInTheDocument() // 2 copies x 1 page x ₹2
   expect(screen.getByText('Waiting for payment…')).toBeInTheDocument()
-  expect(screen.queryByText(/Ready for Future Printing/)).not.toBeInTheDocument()
+  expect(screen.queryByTestId('order-ref')).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Customer pays' }))
-  expect(await screen.findByText(/Ready for Future Printing/, {}, { timeout: 3000 })).toBeInTheDocument()
+  expect(await screen.findByTestId('order-ref', {}, { timeout: 3000 })).toBeInTheDocument()
   expect(screen.getByTestId('order-ref')).toHaveTextContent(order.reference)
 })
 
@@ -40,7 +40,7 @@ test('underpayment keeps the customer on the payment screen', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Underpays ₹1' }))
   await new Promise((r) => setTimeout(r, 300))
   expect(screen.getByText('Waiting for payment…')).toBeInTheDocument()
-  expect(screen.queryByText(/Ready for Future Printing/)).not.toBeInTheDocument()
+  expect(screen.queryByTestId('order-ref')).not.toBeInTheDocument()
 })
 
 test('failed and expired states offer a way forward', async () => {
@@ -53,3 +53,27 @@ test('failed and expired states offer a way forward', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Let it expire' }))
   expect(await screen.findByText('Payment expired.')).toBeInTheDocument()
 })
+
+test('shows Pay now, UPI app buttons and, last, the QR code to scan', async () => {
+  await setup()
+  await screen.findByText('Waiting for payment…')
+  expect(screen.getByRole('link', { name: /Pay now/ }).getAttribute('href')).toMatch(/^upi:\/\/pay\?/)
+  for (const name of ['Google Pay', 'PhonePe', 'Paytm', 'BHIM']) expect(screen.getByRole('link', { name })).toBeInTheDocument()
+  expect(screen.getByTitle('UPI payment QR code')).toBeInTheDocument()
+  expect(screen.getByText(/scan this QR code with any UPI app/i)).toBeInTheDocument()
+})
+
+test('after a verified payment the page shows printing progress and then "sent"', async () => {
+  await setup()
+  await screen.findByText('Waiting for payment…')
+  fireEvent.click(screen.getByRole('button', { name: 'Customer pays' }))
+  expect(await screen.findByTestId('print-status', {}, { timeout: 3000 })).toHaveTextContent(/Printing…|Sent to the printer/)
+  expect(await screen.findByText('Sent to the printer', {}, { timeout: 8000 })).toBeInTheDocument()
+}, 12000)
+
+test('after printing, the confirmation promises the files are erased', async () => {
+  await setup()
+  await screen.findByText('Waiting for payment…')
+  fireEvent.click(screen.getByRole('button', { name: 'Customer pays' }))
+  expect(await screen.findByText(/Privacy: your files are erased/, {}, { timeout: 9000 })).toBeInTheDocument()
+}, 14000)

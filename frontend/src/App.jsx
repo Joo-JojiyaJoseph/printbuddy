@@ -1,23 +1,33 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Routes, Route } from 'react-router-dom'
 import SessionProvider from './context/SessionContext'
-
 const Kiosk = lazy(() => import('./pages/Kiosk'))
 const Welcome = lazy(() => import('./pages/Welcome'))
 const Upload = lazy(() => import('./pages/Upload'))
+const Edit = lazy(() => import('./pages/Edit'))
+const TextEdit = lazy(() => import('./pages/TextEdit'))
 const Configure = lazy(() => import('./pages/Configure'))
 const Review = lazy(() => import('./pages/Review'))
 const Pay = lazy(() => import('./pages/Pay'))
 const Done = lazy(() => import('./pages/Done'))
+import ErrorBoundary from './components/ErrorBoundary'
+
+// Each screen loads on demand, so the first paint only downloads what that screen needs (the PDF engine loads only when editing).
+function Loading() {
+  return <div role="status" aria-label="Loading" className="grid min-h-dvh place-items-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--line,#cbd5e1)] border-t-[var(--brand,#6366f1)]" /></div>
+}
 
 export default function App() {
   return (
-    <Suspense fallback={null}>
+    <ErrorBoundary>
+      <Suspense fallback={<Loading />}>
       <Routes>
         <Route path="/kiosk" element={<Kiosk />} />
         <Route path="/s/:token" element={<SessionProvider />}>
           <Route index element={<Welcome />} />
           <Route path="upload" element={<Upload />} />
+          <Route path="edit/:docId" element={<Edit />} />
+          <Route path="edit/:docId/text" element={<TextEdit />} />
           <Route path="configure/:docId" element={<Configure />} />
           <Route path="review/:docId" element={<Review />} />
           <Route path="pay/:ref" element={<Pay />} />
@@ -25,6 +35,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/kiosk" replace />} />
       </Routes>
-    </Suspense>
+      </Suspense>
+    </ErrorBoundary>
   )
 }

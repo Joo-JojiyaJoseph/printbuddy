@@ -1,5 +1,5 @@
 openapi: 3.0.3
-info: { title: PrintBuddy API, version: 1.0.0, description: "Money is integer paise. The server is the only source of price and payment truth." }
+info: { title: Taprint API, version: 1.0.0, description: "Money is integer paise. The server is the only source of price and payment truth." }
 servers: [{ url: /api/v1 }]
 components:
   securitySchemes:
@@ -18,6 +18,70 @@ components:
         orientation: { type: string, enum: [portrait, landscape] }
         duplex: { type: boolean }
         scaling: { type: string, enum: [fit, fill, actual] }
+        pages_per_sheet:
+          type: integer
+          enum: [1, 2, 4, 6, 9]
+          default: 1
+          description: |
+            Documents only (PDF, Word, PowerPoint, ...): how many pages (slides) are printed on one sheet. The chosen
+            pages (after `page_range` and edits) are packed in order. Billing is per printed side, so 10 slides at 2 per
+            sheet are billed as 5 sides. Images use `edits.sheet` instead and ignore this field.
+        edits: { $ref: '#/components/schemas/Edits' }
+    Edits:
+      type: object
+      nullable: true
+      description: |
+        Optional page edits. The server validates them against the real document and derives the billable page
+        count itself (the client never sends a page count). `page_range` then selects among the OUTPUT pages.
+        Documents (PDF/Word/TXT) use `pages`; JPG/PNG use `sheet`. Sending the wrong shape for the kind is a 422.
+      properties:
+        pages:
+          type: array
+          description: Ordered output pages. Delete = omit, copy = repeat a src, blank = src null.
+          items:
+            type: object
+            properties:
+              src: { type: integer, nullable: true, minimum: 1, description: "1-based source page; null = blank page" }
+              rot: { type: integer, enum: [0, 90, 180, 270] }
+              align: { type: string, enum: [fit, center, tl, fill] }
+              marks:
+                type: array
+                maxItems: 60
+                description: |
+                  Overlay marks drawn ON TOP of the original page (the page itself is kept as-is). Positions are
+                  fractions (0-1) of the displayed page; `fs` is the text height as a fraction of page height.
+                  Marks never change billing.
+                items:
+                  type: object
+                  properties:
+                    t: { type: string, enum: [text, cover, hl] }
+                    x: { type: number }
+                    y: { type: number }
+                    w: { type: number }
+                    h: { type: number }
+                    text: { type: string, maxLength: 400 }
+                    fs: { type: number }
+                    color: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+                    bold: { type: boolean }
+                    cover: { type: boolean, description: "text only: white patch behind the text" }
+                    align: { type: string, enum: [left, center, right] }
+        stamp:
+          type: object
+          description: Applied to every output page.
+          properties:
+            numbers: { type: boolean, description: "print 'n / total' at the bottom" }
+            watermark: { type: string, maxLength: 40, description: "diagonal, light grey" }
+        sheet:
+          type: object
+          properties:
+            per_page: { type: integer, enum: [1, 2, 4, 6] }
+            mode: { type: string, enum: [sequence, copies], description: "sequence packs images in order; copies repeats each image per_page times on its own sheet" }
+            fit: { type: string, enum: [fit, fill] }
+            margin: { type: integer, minimum: 0, maximum: 20, description: millimetres }
+            images:
+              type: array
+              maxItems: 50
+              items: { type: object, properties: { document_id: { type: string, format: uuid }, rot: { type: integer, enum: [0, 90, 180, 270] } } }
     Quote:
       type: object
       properties:
@@ -39,6 +103,22 @@ paths:
   /documents/{id}:
     get: { summary: Metadata and conversion status, security: [{ sessionToken: [] }], responses: { "200": { description: ok }, "404": { description: not in this session } } }
     delete: { summary: Remove document, security: [{ sessionToken: [] }], responses: { "204": { description: deleted } } }
+  /documents/{id}/editable:
+    post:
+      summary: HTML for the text editor (Word via LibreOffice, PDF by reading its text, TXT). PDF is lossy; scanned PDFs return 422. Rate limited (10/min).
+      security: [{ sessionToken: [] }]
+      responses: { "200": { description: "{ data: { html, source: word|pdf|txt|saved, lossy } }" }, "409": { description: not an editable kind }, "422": { description: no selectable text / too large } }
+  /documents/{id}/content:
+    put:
+      summary: Save edited HTML. It is sanitised (whitelist), rebuilt as a new print PDF and the page count is refreshed. The original upload is never modified. 409 once the document is in an active order.
+      security: [{ sessionToken: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [html], properties: { html: { type: string, maxLength: 2000000 } } } } } }
+      responses: { "200": { description: updated document }, "409": { description: already ordered }, "422": { description: empty or too many pages } }
+  /documents/{id}/revert:
+    post:
+      summary: Discard text edits and re-prepare the original preview.
+      security: [{ sessionToken: [] }]
+      responses: { "200": { description: document }, "409": { description: already ordered } }
   /documents/{id}/preview:
     get: { summary: Stream converted PDF or image via authorized private delivery, security: [{ sessionToken: [] }], responses: { "200": { description: file } } }
   /quotes:
@@ -50,7 +130,13 @@ paths:
   /orders:
     post: { summary: Create order (re-prices on server, stores pricing snapshot), security: [{ sessionToken: [] }], responses: { "201": { description: created } } }
   /orders/{reference}:
-    get: { summary: Order and payment status, security: [{ sessionToken: [] }], responses: { "200": { description: ok } } }
+    get:
+      summary: Order and payment status
+      description: >
+        For a paid order the response includes `print` ({status: queued|preparing|sending|sent|failed, message,
+        sent_at}). `sent` means the print system accepted the job, not that paper has come out.
+      security: [{ sessionToken: [] }]
+      responses: { "200": { description: ok } }
   /orders/{reference}/payment:
     post: { summary: Create provider payment for the exact server amount, security: [{ sessionToken: [] }], responses: { "201": { description: "UPI QR payload and expiry" } } }
     get: { summary: Poll payment; verifies with provider server-side, security: [{ sessionToken: [] }], responses: { "200": { description: ok } } }
@@ -61,3 +147,16 @@ paths:
   /admin/pricing-rules: { get: { security: [{ adminBearer: [] }], responses: { "200": { description: ok } } }, put: { summary: "Update rates (audit logged)", security: [{ adminBearer: [] }], responses: { "200": { description: ok } } } }
   /admin/reports: { get: { security: [{ adminBearer: [] }], responses: { "200": { description: ok } } } }
   /admin/audit-logs: { get: { security: [{ adminBearer: [] }], responses: { "200": { description: ok } } } }
+  /admin/orders/{reference}/print/retry:
+    post:
+      summary: Re-send a paid order whose automatic print failed (admin/operator)
+      description: Never creates a second print of a job already sent (409).
+      security: [{ adminBearer: [] }]
+      parameters: [{ name: reference, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Job re-queued }, "409": { description: Already sent or not paid } }
+  /documents/merge:
+    post:
+      summary: Combine several ready documents of the session into one new PDF document (one order, one payment)
+      security: [{ sessionToken: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [document_ids], properties: { document_ids: { type: array, minItems: 2, items: { type: string } } } } } } }
+      responses: { "201": { description: The combined document }, "409": { description: A file is not ready }, "422": { description: Too many pages or files / merge failed } }

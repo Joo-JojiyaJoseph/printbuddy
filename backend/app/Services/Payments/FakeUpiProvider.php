@@ -37,7 +37,7 @@ final class FakeUpiProvider implements PaymentProvider
         $this->persist();
         return [
             'provider_payment_id' => $id,
-            'qr_payload' => sprintf('upi://pay?pa=sandbox@upi&pn=PrintBuddy&am=%s&cu=%s&tr=%s', number_format($amountPaise / 100, 2, '.', ''), $currency, $orderReference),
+            'qr_payload' => sprintf('upi://pay?pa=sandbox@upi&pn=Taprint&am=%s&cu=%s&tr=%s', number_format($amountPaise / 100, 2, '.', ''), $currency, $orderReference),
             'expires_at' => time() + 300,
         ];
     }

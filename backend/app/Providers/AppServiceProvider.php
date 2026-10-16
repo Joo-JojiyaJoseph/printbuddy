@@ -14,9 +14,11 @@ use App\Services\Payments\PaymentProcessor;
 use App\Services\Payments\PaymentProvider;
 use App\Services\Payments\PaymentStore;
 use App\Services\Payments\RazorpayProvider;
+use App\Services\Printing\{CupsPrinter, FilePrinter, PrinterDriver, PrintFileComposer, SumatraPrinter};
 use App\Support\Settings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use App\Services\Documents\Editing\OfficeHtmlBridge;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -35,6 +37,34 @@ class AppServiceProvider extends ServiceProvider
                 'fake' => new FakeConverter,
                 'none' => new UnavailableConverter,
                 default => new LibreOfficeConverter((string) $c['soffice_path'], (int) $c['timeout_seconds']),
+            };
+        });
+
+        $this->app->singleton(OfficeHtmlBridge::class, function () {
+            $c = config('printbuddy.conversion');
+
+            return new OfficeHtmlBridge((string) $c['soffice_path'], (int) $c['timeout_seconds'], storage_path('app/conversion'));
+        });
+
+        $this->app->singleton(PrintFileComposer::class, function () {
+            $c = config('printbuddy.printing');
+
+            return new PrintFileComposer((string) $c['pdftoppm_path'], (int) $c['dpi'], (int) $c['timeout_seconds'], (int) config('printbuddy.defaults.max_pages'));
+        });
+
+        $this->app->singleton(\App\Services\Documents\PdfMerger::class, fn ($app) => new \App\Services\Documents\PdfMerger(
+            $app->make(PrintFileComposer::class), (string) config('printbuddy.printing.pdfunite_path')));
+
+        $this->app->singleton(PrinterDriver::class, function ($app) {
+            $c = config('printbuddy.printing');
+            if ($c['driver'] === 'file' && $app->environment('production')) {
+                throw new \RuntimeException('PRINT_DRIVER=file does not print; set PRINT_DRIVER=cups or sumatra in production.');
+            }
+
+            return match ($c['driver']) {
+                'cups' => new CupsPrinter((string) $c['lp_path'], (string) $c['printer'], (int) $c['timeout_seconds']),
+                'sumatra' => new SumatraPrinter((string) $c['sumatra_path'], (string) $c['printer'], (int) $c['timeout_seconds']),
+                default => new FilePrinter($c['output_dir'] !== '' ? (string) $c['output_dir'] : storage_path('app/printed')),
             };
         });
 
@@ -80,7 +110,11 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureRateLimiting(): void
     {
-        RateLimiter::for('session-create', fn (Request $r) => Limit::perMinute(10)->by($r->ip()));
+        $byToken = fn (Request $r) => $r->header('X-Session-Token') ?: $r->ip();
+        RateLimiter::for('quote', fn (Request $r) => Limit::perMinute(300)->by('q|'.$byToken($r)));
+        RateLimiter::for('order', fn (Request $r) => Limit::perMinute(40)->by('o|'.$byToken($r)));
+        RateLimiter::for('heavy', fn (Request $r) => Limit::perMinute(30)->by('h|'.$byToken($r)));
+        RateLimiter::for('session-create', fn (Request $r) => Limit::perMinute(30)->by($r->ip()));
         RateLimiter::for('customer', fn (Request $r) => Limit::perMinute(120)->by($r->header('X-Session-Token') ?: $r->ip()));
         RateLimiter::for('upload', fn (Request $r) => Limit::perMinute(30)->by($r->header('X-Session-Token') ?: $r->ip()));
         RateLimiter::for('preview', fn (Request $r) => Limit::perMinute(120)->by($r->ip()));

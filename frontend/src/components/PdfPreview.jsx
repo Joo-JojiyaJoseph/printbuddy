@@ -1,20 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { loadPdfjs } from '../utils/pdf'
+import { usePdfDocument } from '../hooks/usePdfDocument'
 
 export default function PdfPreview({ url, page }) {
   const canvasRef = useRef(null)
-  const [pdf, setPdf] = useState(null)
-  const [err, setErr] = useState(null)
-
-  useEffect(() => {
-    let off = false, doc
-    setPdf(null); setErr(null)
-    loadPdfjs()
-      .then((m) => m.getDocument(url).promise)
-      .then((d) => { doc = d; if (off) d.destroy(); else setPdf(d) })
-      .catch(() => !off && setErr('Could not display this PDF.'))
-    return () => { off = true; doc?.destroy() }
-  }, [url])
+  const { pdf, error } = usePdfDocument(url)
+  const [renderErr, setErr] = useState(null)
+  const err = error ?? renderErr
 
   useEffect(() => {
     if (!pdf) return
@@ -35,7 +26,7 @@ export default function PdfPreview({ url, page }) {
 
   if (err) return <p role="alert" className="p-6 text-center text-danger">{err}</p>
   return (
-    <div className="relative min-h-[200px] w-full overflow-hidden rounded bg-white shadow-[0_10px_30px_rgba(10,5,60,.35)]">
+    <div className="relative min-h-[200px] w-full overflow-hidden rounded bg-white shadow-[0_10px_30px_rgba(16,36,43,.35)]">
       {!pdf && <div className="absolute inset-0 animate-pulse bg-white/70" role="status" aria-label="Loading preview" />}
       <canvas ref={canvasRef} aria-label={`Page ${page} preview`} />
     </div>

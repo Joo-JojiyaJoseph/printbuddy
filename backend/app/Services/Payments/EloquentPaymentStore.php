@@ -2,7 +2,9 @@
 
 namespace App\Services\Payments;
 
+use App\Jobs\PrintOrderJob;
 use App\Models\Payment;
+use App\Models\PrintJob;
 use App\Models\PrintOrder;
 use App\Models\QrSession;
 use App\Models\WebhookEvent;
@@ -81,6 +83,12 @@ class EloquentPaymentStore implements PaymentStore
                 QrSession::query()->whereKey($order->qr_session_id)->where('status', QrSession::ACTIVE)->update(['status' => QrSession::COMPLETED]);
             }
             $order->save();
+            if ($orderStatus === 'paid') {
+                // Only a server-verified payment reaches this point. The job row is created in the same
+                // transaction; the worker is dispatched after commit so it always sees a paid order.
+                PrintJob::query()->firstOrCreate(['print_order_id' => $order->id], ['status' => PrintJob::QUEUED]);
+                PrintOrderJob::dispatchAfterResponse($order->id, true); // runs right after this request finishes; no queue worker needed
+            }
             $this->audit->log('payment.'.$paymentStatus, $payment, ['order' => $order->reference, 'order_status' => $orderStatus, 'amount_paise' => $payment->amount_paise]);
         });
     }

@@ -1,46 +1,80 @@
 @import "tailwindcss";
 
-/* Design tokens ported from the PrintBuddy reference (reference only). */
+/* Taprint theme: teal brand, coral for the money moments (Pay), ink text, white cards. Deep teal keeps white text readable. */
 @theme {
-  --color-accent: #3ee6c3;
-  --color-accent-2: #27b9ea;
-  --color-primary: #8b7bff;
-  --color-pink: #ff7ac6;
-  --color-danger: #ff6b8b;
-  --color-amber: #ffb84d;
-  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
-  --radius-card: 24px;
-  --radius-btn: 20px;
+  --color-accent: #0E7C86;      /* brand teal */
+  --color-accent-2: #0A4A52;    /* deep teal (buttons, text on white) */
+  --color-primary: #0A4A52;
+  --color-mint: #12a679;
+  --color-pink: #FF6B4A;
+  --color-coral: #FF6B4A;
+  --color-coral-deep: #D6401F;
+  --color-danger: #d9344a;
+  --color-amber: #d97706;
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --radius-card: 22px;
+  /* Professional type scale: 16px base, 14px body, 12px captions. Headings 20-28px. */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --radius-btn: 999px;
   --animate-enter: enter .45s cubic-bezier(.2,.9,.2,1) both;
   --animate-float: float 4s ease-in-out infinite;
-  --animate-drift: drift 16s ease-in-out infinite alternate;
+  --animate-drift: drift 18s ease-in-out infinite alternate;
   --animate-pulse-ring: pulse-ring 2.4s ease-in-out infinite;
+  --animate-fade: fade .2s ease both;
+  --animate-pop: pop .28s cubic-bezier(.2,1.2,.3,1) both;
+  --animate-rise: rise .4s cubic-bezier(.2,.9,.2,1) both;
+  --animate-twinkle: twinkle 2.2s ease-in-out infinite;
+  --animate-slide: slide 1.3s ease-in-out infinite;
+  --animate-gradient: gradient 6s ease infinite;
+  --animate-draw: draw .6s .15s ease-out both;
+  --animate-fall: fall 2.6s ease-in both;
 }
 
+/* Light, airy theme: white cards on a pastel indigo / sky / lilac wash. Text is deep navy for strong contrast. */
 :root {
-  --bg1: #1e2150; --bg2: #5a4fa8;
-  --card: rgba(255,255,255,.09); --border: rgba(255,255,255,.16);
-  --text: #f5f4ff; --muted: #b9b6e0; --hi: rgba(255,255,255,.14);
-}
-:root[data-theme="light"] {
-  --bg1: #e9e5ff; --bg2: #cfc6ff; --card: #ffffff; --border: #e4defb;
-  --text: #1d1845; --muted: #5f5b8f; --hi: #f1eeff;
+  --bg1: #eef8f8; --bg2: #f6fbfb;
+  --card: #ffffff; --border: #d6e8e9;
+  --text: #10242B; --muted: #4C6469; --hi: #e8f5f5;
+  --shadow: 0 18px 50px rgba(10,74,82, .14);
 }
 
+html { overflow-x: clip; font-size: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* Long file names, codes or URLs wrap instead of pushing a card or popup wider than the screen. */
+body { overflow-wrap: break-word; }
+img, video, canvas, svg { max-width: 100%; }
 html, body, #root { min-height: 100%; }
+body { overflow-x: clip; }
 body {
   margin: 0; color: var(--text); font-family: var(--font-sans);
-  background: linear-gradient(160deg, var(--bg1), var(--bg2)) fixed;
+  background: radial-gradient(1200px 600px at 100% 0%, #d3eff0 0%, transparent 60%), radial-gradient(900px 600px at 0% 100%, #fdece6 0%, transparent 60%), linear-gradient(160deg, var(--bg1), var(--bg2)) fixed;
   -webkit-tap-highlight-color: transparent;
 }
 
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: translateY(14px) scale(.94); } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+@keyframes twinkle { 50% { transform: scale(1.25) rotate(12deg); opacity: .75; } }
+@keyframes slide { from { transform: translateX(-120%); } to { transform: translateX(320%); } }
+@keyframes gradient { 50% { background-position: 100% 50%; } }
+@keyframes draw { from { stroke-dashoffset: 48; } to { stroke-dashoffset: 0; } }
+@keyframes fall { from { transform: translateY(-20px) rotate(0); opacity: 1; } to { transform: translateY(70vh) rotate(540deg); opacity: 0; } }
+@keyframes sheen { from { transform: translateX(-130%) skewX(-20deg); } to { transform: translateX(330%) skewX(-20deg); } }
 @keyframes enter { from { opacity: 0; transform: translateY(18px) scale(.98); } }
 @keyframes float { 50% { transform: translateY(-14px) rotate(3deg); } }
 @keyframes drift { to { transform: translate(7%, 9%) scale(1.15); } }
-@keyframes pulse-ring { 50% { box-shadow: 0 0 0 14px rgba(139,123,255,.25), 0 20px 50px rgba(0,0,0,.3); } }
+@keyframes pulse-ring { 50% { box-shadow: 0 0 0 14px rgba(10,74,82,.18), 0 20px 50px rgba(10,74,82,.2); } }
 
 :focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Glass surfaces and shimmer on the main call-to-action. */
+.glass { background: rgba(255,255,255,.62); backdrop-filter: blur(18px) saturate(140%); border: 1px solid rgba(255,255,255,.7); }
+.cta { background-size: 200% auto; animation: gradient 6s ease infinite; position: relative; overflow: hidden; }
+.cta:not(:disabled)::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent); animation: sheen 3.6s ease-in-out infinite; pointer-events: none; }
+.stagger > * { animation: rise .45s cubic-bezier(.2,.9,.2,1) both; }
+.stagger > *:nth-child(2) { animation-delay: .06s; } .stagger > *:nth-child(3) { animation-delay: .12s; }
+.stagger > *:nth-child(4) { animation-delay: .18s; } .stagger > *:nth-child(n+5) { animation-delay: .24s; }

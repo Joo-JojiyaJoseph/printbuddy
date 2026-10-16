@@ -7,7 +7,9 @@ use App\Models\Document;
 use App\Models\PrintOrder;
 use App\Models\QrSession;
 use App\Services\Audit\AuditLogger;
+use App\Services\Pricing\PagePlan;
 use App\Services\Pricing\PricingRulesRepository;
+use App\Support\Settings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -22,17 +24,53 @@ class OrderService
     /** Authoritative quote for a ready document in this session. */
     public function quote(Document $document, array $settings): array
     {
+        [$settings, $pages] = $this->prepare($document, $settings);
+
+        return $this->price($pages, $settings);
+    }
+
+    /**
+     * Validate the customer's page edits / image layout against the real document and derive the page count
+     * to bill from. The client never supplies a page count or price.
+     *
+     * @return array{0:array,1:int} settings with normalised `edits`, and the number of output pages
+     */
+    private function prepare(Document $document, array $settings): array
+    {
         if ($document->status !== Document::READY || $document->page_count < 1) {
             throw new ApiProblem('Document is not ready yet.', 409);
         }
+        $imageIds = [];
+        if (in_array($document->kind, ['jpg', 'png'], true)) {
+            $imageIds = Document::query()->where('qr_session_id', $document->qr_session_id)
+                ->whereNull('deleted_at')->where('status', Document::READY)->whereIn('kind', ['jpg', 'png'])
+                ->pluck('id')->all();
+        }
         try {
-            return $this->pricing->service()->quote(
-                $document->page_count, $settings['page_range'], $settings['copies'],
-                $settings['paper_size'], $settings['color_mode'], $settings['duplex'],
+            $edits = PagePlan::normalize($settings['edits'] ?? null, $document->page_count, $document->kind, $imageIds, $document->id, app(Settings::class)->int('max_pages'));
+        } catch (InvalidArgumentException $e) {
+            throw new ApiProblem($e->getMessage(), 422);
+        }
+        $settings['edits'] = $edits;
+        // Images have their own sheet layout; "pages per sheet" is for documents (PDF, Word, PowerPoint, ...).
+        $settings['pages_per_sheet'] = in_array($document->kind, ['jpg', 'png'], true) ? 1 : (int) ($settings['pages_per_sheet'] ?? 1);
+
+        return [$settings, $edits === null ? $document->page_count : PagePlan::pageCount($edits, $document->page_count)];
+    }
+
+    private function price(int $pages, array $settings): array
+    {
+        try {
+            $quote = $this->pricing->service()->quote(
+                $pages, $settings['page_range'], $settings['copies'],
+                $settings['paper_size'], $settings['color_mode'], $settings['duplex'], (int) ($settings['pages_per_sheet'] ?? 1),
             );
         } catch (InvalidArgumentException $e) {
             throw new ApiProblem($e->getMessage(), 422);
         }
+        $quote['output_pages'] = $pages;
+
+        return $quote;
     }
 
     /**
@@ -47,7 +85,8 @@ class OrderService
                 return $existing;
             }
         }
-        $quote = $this->quote($document, $settings);
+        [$settings, $pages] = $this->prepare($document, $settings);
+        $quote = $this->price($pages, $settings);
 
         return DB::transaction(function () use ($session, $document, $settings, $quote, $idempotencyKey) {
             $order = new PrintOrder([

@@ -2,10 +2,10 @@ import { readBytes } from './readBytes'
 
 // Client-side pre-check for fast feedback only. The backend re-validates content, size and count.
 export const LIMITS = { maxFiles: 10, maxBytes: 25 * 1024 * 1024 }
-export const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
+export const ACCEPT = '.pdf,.jpg,.jpeg,.jfif,.png,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
 
 const EXT_KIND = {
-  pdf: 'pdf', jpg: 'jpg', jpeg: 'jpg', png: 'png', txt: 'txt',
+  pdf: 'pdf', jpg: 'jpg', jpeg: 'jpg', jfif: 'jpg', jpe: 'jpg', png: 'png', txt: 'txt',
   doc: 'ole', xls: 'ole', ppt: 'ole', docx: 'ooxml', xlsx: 'ooxml', pptx: 'ooxml',
 }
 const startsWith = (b, sig) => sig.every((v, i) => b[i] === v)
@@ -26,7 +26,14 @@ export async function sniffKind(file) {
 
 /** @returns {Promise<{ok:true,kind:string}|{ok:false,error:string}>} */
 export async function validateFile(file, currentCount = 0) {
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  let ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  const head = new Uint8Array(await readBytes(file.slice(0, 16)))
+  const ascii = (a, b) => String.fromCharCode(...head.slice(a, b))
+  if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return { ok: false, error: `"${file.name}": WebP images are not supported yet. Save it as JPG or PNG.` }
+  if (ascii(4, 8) === 'ftyp' && ['heic', 'heix', 'mif1', 'heif'].includes(ascii(8, 12))) return { ok: false, error: `"${file.name}": HEIC photos are not supported yet. Save it as JPG.` }
+  // A JPEG/PNG with a missing or unfamiliar extension is accepted by its content; a known-but-wrong one (PNG named .jpg) is still refused.
+  const real = await sniffKind(file)
+  if ((real === 'jpg' || real === 'png') && !(ext in EXT_KIND)) ext = real === 'jpg' ? 'jpg' : 'png'
   if (!(ext in EXT_KIND)) return { ok: false, error: `"${file.name}": .${ext || '?'} files are not supported.` }
   if (currentCount >= LIMITS.maxFiles) return { ok: false, error: `You can add up to ${LIMITS.maxFiles} files per session.` }
   if (file.size === 0) return { ok: false, error: `"${file.name}" is empty.` }

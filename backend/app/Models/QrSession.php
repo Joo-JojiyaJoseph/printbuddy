@@ -17,7 +17,7 @@ class QrSession extends Model
     public const EXPIRED = 'expired';
     public const CANCELLED = 'cancelled';
 
-    protected $fillable = ['kiosk_id', 'token_hash', 'status', 'expires_at', 'claimed_at'];
+    protected $fillable = ['kiosk_id', 'token_hash', 'status', 'expires_at', 'claimed_at', 'claimed_by'];
 
     protected function casts(): array
     {
