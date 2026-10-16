@@ -12,7 +12,8 @@ use InvalidArgumentException;
  *      [{src: 1-based source page | null (blank), rot: 0|90|180|270, align: fit|center|tl|fill, marks?: [...]}]
  *      marks are drawings ON TOP of the original page (text, white-out cover, highlight) in fractions of the displayed
  *      page; edits.stamp = {numbers: bool, watermark: string} is applied to every output page.
- *  - images (JPG / PNG):            edits.sheet = {per_page, mode, fit, margin, images:[{document_id, rot}]}
+ *  - images (JPG / PNG):            edits.sheet = {per_page, mode, fit, margin, images:[{document_id, rot, x?, y?, zoom?}]}
+ *      x / y = where the customer dragged the picture (fraction of its cell, -0.5..0.5 from the middle), zoom = its size (0.2..4)
  *      mode 'sequence' packs images in order, `per_page` to a sheet;
  *      mode 'copies' repeats each image `per_page` times on its own sheet.
  *
@@ -22,7 +23,12 @@ use InvalidArgumentException;
 final class PagePlan
 {
     public const ROTATIONS = [0, 90, 180, 270];
-    public const ALIGNS = ['fit', 'center', 'tl', 'fill'];
+    /** edge = whole page to the sheet edge (the default), fit = whole page with a small margin, actual = real size. */
+    public const ALIGNS = ['edge', 'fit', 'center', 'tl', 'fill', 'actual'];
+    /** How far a dragged image may be moved from the middle of its cell (fraction of the cell) and how far it may be resized. */
+    public const MAX_OFFSET = 0.5;
+    public const ZOOM_MIN = 0.2;
+    public const ZOOM_MAX = 4.0;
     public const PER_PAGE = [1, 2, 4, 6];
     /** Pages (slides) of a document printed on one sheet: a print setting for documents, billed per printed sheet side. */
     public const PAGES_PER_SHEET = [1, 2, 4, 6, 9];
@@ -211,6 +217,16 @@ final class PagePlan
         return $out;
     }
 
+    /** A finite number clamped to [$min, $max] and rounded; anything that is not a number is refused. */
+    private static function number(mixed $v, float $min, float $max, string $message): float
+    {
+        if ((! is_int($v) && ! is_float($v)) || ! is_finite((float) $v)) {
+            throw new InvalidArgumentException($message);
+        }
+
+        return round(max($min, min($max, (float) $v)), 4);
+    }
+
     private static function sheet(array $sheet, array $imageIds, string $primaryId, int $maxPages): array
     {
         $perPage = $sheet['per_page'] ?? 1;
@@ -242,7 +258,18 @@ final class PagePlan
                 throw new InvalidArgumentException('Unsupported image rotation.');
             }
             $hasPrimary = $hasPrimary || $id === $primaryId;
-            $out[] = ['document_id' => $id, 'rot' => $rot];
+            $item = ['document_id' => $id, 'rot' => $rot];
+            foreach (['x' => self::MAX_OFFSET, 'y' => self::MAX_OFFSET] as $k => $limit) {
+                $v = self::number($img[$k] ?? 0, -$limit, $limit, 'Unsupported picture position.');
+                if ($v != 0.0) {
+                    $item[$k] = $v;
+                }
+            }
+            $zoom = self::number($img['zoom'] ?? 1, self::ZOOM_MIN, self::ZOOM_MAX, 'Unsupported picture size.');
+            if ($zoom != 1.0) {
+                $item['zoom'] = $zoom;
+            }
+            $out[] = $item;
         }
         if (! $hasPrimary) {
             throw new InvalidArgumentException('The image you are editing must be part of the layout.');

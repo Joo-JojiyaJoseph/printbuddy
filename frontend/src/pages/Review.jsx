@@ -36,7 +36,7 @@ export default function Review() {
   return (
     <CustomerLayout step={3} title="Check your order" hint="Make sure everything is right, then pay."
       footer={<>
-        <Button variant="ghost" onClick={() => navigate(`/s/${token}/configure/${doc.id}`)}>Edit</Button>
+        <Button variant="ghost" onClick={() => navigate(`/s/${token}/edit/${doc.id}`)}>Edit</Button>
         <Button variant="pay" loading={busy} disabled={!quote || loading} onClick={pay}>{quote ? `Pay ${formatINR(quote.total_paise)}` : 'Pay'}</Button>
       </>}>
       <div className="stagger">

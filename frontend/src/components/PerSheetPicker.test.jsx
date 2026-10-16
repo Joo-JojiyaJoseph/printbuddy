@@ -25,11 +25,9 @@ describe('pages per sheet', () => {
     render(<NupSheet pdf={null} items={[{ src: 1, rot: 0 }, { src: 2, rot: 0 }]} perSheet={6} ratio={210 / 297} paperMm={[210, 297]} orientation="portrait" label="Sheet 1 preview" number={1} total={1} />)
     expect(screen.getByRole('img', { name: 'Sheet 1 preview' })).toHaveAttribute('data-cells', '6')
   })
-  it('the settings form shows the picker only for documents, and hides Scaling once pages are packed', () => {
+  it('the settings form shows the picker only for documents; position on paper is not here any more (it lives with the pages)', () => {
     const { rerender } = render(<PrintSettingsForm value={DEFAULT_SETTINGS} onChange={() => {}} pageCount={8} showLayout />)
     expect(screen.getByRole('radiogroup', { name: 'Pages per sheet' })).toBeInTheDocument()
-    expect(screen.getByRole('radiogroup', { name: 'Scaling' })).toBeInTheDocument()
-    rerender(<PrintSettingsForm value={{ ...DEFAULT_SETTINGS, pages_per_sheet: 2 }} onChange={() => {}} pageCount={8} showLayout />)
     expect(screen.queryByRole('radiogroup', { name: 'Scaling' })).toBeNull()
     rerender(<PrintSettingsForm value={DEFAULT_SETTINGS} onChange={() => {}} pageCount={1} />)
     expect(screen.queryByRole('radiogroup', { name: 'Pages per sheet' })).toBeNull()
@@ -37,8 +35,7 @@ describe('pages per sheet', () => {
   it('the order summary names the layout only when it is not 1 per sheet', () => {
     expect(describeSettings(DEFAULT_SETTINGS).some(([k]) => k === 'Layout')).toBe(false)
     expect(describeSettings({ ...DEFAULT_SETTINGS, pages_per_sheet: 4 })).toContainEqual(['Layout', '4 pages per sheet'])
-    expect(describeSettings({ ...DEFAULT_SETTINGS, pages_per_sheet: 4 }).some(([k]) => k === 'Scaling')).toBe(false)
-    expect(describeSettings(DEFAULT_SETTINGS).some(([k]) => k === 'Scaling')).toBe(true)
+    expect(describeSettings(DEFAULT_SETTINGS).some(([k]) => k === 'Scaling')).toBe(false)
   })
   it('bills printed sides: 10 slides at 2 per sheet cost 5 sides', () => {
     const q = quoteFor(10, { ...DEFAULT_SETTINGS, pages_per_sheet: 2 }, RULES)

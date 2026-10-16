@@ -45,6 +45,14 @@ check('3 per page not offered', $bad(fn() => $plan($img(['per_page' => 3]), 'png
 check('margin out of range rejected', $bad(fn() => $plan($img(['margin' => 99]), 'png', 1)) && $bad(fn() => $plan($img(['margin' => -1]), 'png', 1)));
 check('image rotation validated', $bad(fn() => $plan($img(['images' => [['document_id' => 'A', 'rot' => 33]]]), 'png', 1)));
 
+// dragged picture position and size, and the new page positions
+$moved = fn(array $i) => $plan($img(['per_page' => 1, 'images' => [['document_id' => 'A'] + $i]]), 'png', 1)['sheet']['images'][0];
+check('untouched picture keeps only id and rotation', $moved([]) === ['document_id' => 'A', 'rot' => 0]);
+check('dragged position and size are kept', $moved(['x' => 0.25, 'y' => -0.1, 'zoom' => 0.5]) === ['document_id' => 'A', 'rot' => 0, 'x' => 0.25, 'y' => -0.1, 'zoom' => 0.5]);
+check('position is clamped to half a cell, size to 0.2..4', $moved(['x' => 9, 'y' => -9, 'zoom' => 99]) === ['document_id' => 'A', 'rot' => 0, 'x' => 0.5, 'y' => -0.5, 'zoom' => 4.0] && $moved(['zoom' => 0.01])['zoom'] === 0.2);
+check('position and size must be numbers', $bad(fn() => $moved(['x' => '0.2'])) && $bad(fn() => $moved(['y' => NAN])) && $bad(fn() => $moved(['zoom' => INF])));
+check('whole page to the edge and real size are valid positions', $plan(['pages' => [['src' => 1, 'align' => 'edge'], ['src' => 2, 'align' => 'actual']]])['pages'][1]['align'] === 'actual');
+
 $rules = ['rates' => [['paper_size' => 'A4', 'color_mode' => 'bw', 'per_side_paise' => 200]], 'duplex_discount_bps' => 0, 'service_fee_paise' => 0, 'tax_bps' => 0];
 $count = PagePlan::pageCount($plan(['pages' => [['src' => 1], ['src' => 1], ['src' => 2], ['src' => null]]]), 6);
 $q = (new PrintPricingService($rules))->quote($count, '2-4', 2, 'A4', 'bw', false);

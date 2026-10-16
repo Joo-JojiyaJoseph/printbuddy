@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../services/api'
+import { pricingKey } from './useQuote'
 
 /**
  * "You could save ₹X" tips. Each idea is priced by the SERVER with the same quote endpoint as the real price, so the
@@ -7,7 +8,7 @@ import { api } from '../services/api'
  */
 export function useSavings(token, doc, settings, quote, pageCount) {
   const [tips, setTips] = useState([])
-  const key = JSON.stringify(settings)
+  const key = pricingKey(settings)
   const total = quote?.total_paise, sheets = quote?.sheets
 
   useEffect(() => {

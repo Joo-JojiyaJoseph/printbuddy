@@ -5,7 +5,6 @@ export const DEFAULT_SETTINGS = {
   page_range: '', copies: 1, color_mode: 'bw', paper_size: 'A4',
   orientation: 'portrait', duplex: false, scaling: 'fit', pages_per_sheet: 1,
 }
-const SCALING = { fit: 'Fit to page', fill: 'Fill page', actual: 'Actual size' }
 
 export function describeSettings(s) {
   return [
@@ -15,7 +14,7 @@ export function describeSettings(s) {
     ['Paper', s.paper_size],
     ['Orientation', s.orientation === 'landscape' ? 'Landscape' : 'Portrait'],
     ['Sides', s.duplex ? 'Double-sided' : 'Single-sided'],
-    ...((s.pages_per_sheet ?? 1) > 1 ? [['Layout', `${s.pages_per_sheet} pages per sheet`]] : [['Scaling', SCALING[s.scaling] ?? s.scaling]]), // packed pages are each fitted whole into their own box
+    ...((s.pages_per_sheet ?? 1) > 1 ? [['Layout', `${s.pages_per_sheet} pages per sheet`]] : []),
     ...describeEdits(s.edits),
   ]
 }

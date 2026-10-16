@@ -3,12 +3,15 @@ import { rotateMark, stampActive } from './marks'
 // Page edits (documents) and image layouts (images). Pure functions; the backend's PagePlan is the authority
 // for validation and billing, this mirror only drives the editor UI and the demo (mock) API.
 
+/** Where a page sits on the paper. `edge` (whole page to the sheet edge) is the default and is what an unedited document prints as. */
 export const ALIGN_OPTIONS = [
-  { value: 'fit', label: 'Fit page' },
+  { value: 'edge', label: 'Fit page' },
   { value: 'center', label: 'Centre' },
   { value: 'tl', label: 'Top-left' },
   { value: 'fill', label: 'Fill page' },
+  { value: 'actual', label: 'Actual size' },
 ]
+const ALIGNS = ['edge', 'fit', 'center', 'tl', 'fill', 'actual'] // 'fit' (small margin) is still accepted from older orders
 export const PER_PAGE_OPTIONS = [1, 2, 4, 6]
 /** Document pages (e.g. PowerPoint slides) printed on one sheet. */
 export const PAGES_PER_SHEET = [1, 2, 4, 6, 9]
@@ -24,8 +27,8 @@ export const paperMm = (size, orientation) => {
 export const paperRatio = (size, orientation) => { const [w, h] = paperMm(size, orientation); return w / h }
 
 // ---------- documents: ordered list of output pages ----------
-export const identityPlan = (n) => Array.from({ length: n }, (_, i) => ({ src: i + 1, rot: 0, align: 'fit' }))
-export const isIdentity = (plan, n) => plan.length === n && plan.every((p, i) => p.src === i + 1 && p.rot === 0 && p.align === 'fit' && !p.marks?.length)
+export const identityPlan = (n) => Array.from({ length: n }, (_, i) => ({ src: i + 1, rot: 0, align: 'edge' }))
+export const isIdentity = (plan, n) => plan.length === n && plan.every((p, i) => p.src === i + 1 && p.rot === 0 && p.align === 'edge' && !p.marks?.length)
 export const hasContent = (plan) => plan.some((p) => p.src !== null)
 
 // Turning a page also turns its marks with it, so text boxes stay on the words they were placed on.
@@ -34,7 +37,7 @@ export const rotatePage = (plan, i, dir) => plan.map((p, j) => (j === i
   : p))
 export const setMarks = (plan, i, marks) => plan.map((p, j) => (j === i ? { ...p, marks } : p))
 export const duplicatePage = (plan, i) => [...plan.slice(0, i + 1), { ...plan[i] }, ...plan.slice(i + 1)]
-export const addBlank = (plan, i) => [...plan.slice(0, i + 1), { src: null, rot: 0, align: 'fit' }, ...plan.slice(i + 1)]
+export const addBlank = (plan, i) => [...plan.slice(0, i + 1), { src: null, rot: 0, align: 'edge' }, ...plan.slice(i + 1)]
 export const removePage = (plan, i) => {
   const next = plan.filter((_, j) => j !== i)
   return next.length === 0 || !hasContent(next) ? plan : next // never leave nothing to print
@@ -48,6 +51,16 @@ export const movePage = (plan, i, d) => {
 }
 export const setAlign = (plan, i, align) => plan.map((p, j) => (j === i ? { ...p, align } : p))
 export const setAlignAll = (plan, align) => plan.map((p) => ({ ...p, align }))
+
+// ---------- double-sided: the front and the back of each sheet are positioned separately ----------
+/** Which side printed sheet number `sheetIndex` (0-based) lands on when printing double-sided: 1st sheet = front, 2nd = back, ... */
+export const sideOfSheet = (sheetIndex) => (sheetIndex % 2 === 0 ? 'front' : 'back')
+/** Side of output page `i` when `perSheet` pages share a sheet. */
+export const sideOfPage = (i, perSheet = 1) => sideOfSheet(Math.floor(i / Math.max(1, perSheet)))
+/** Give every page that prints on `side` (all fronts, or all backs) the same position. */
+export const setAlignSide = (plan, side, align, perSheet = 1) => plan.map((p, i) => (sideOfPage(i, perSheet) === side ? { ...p, align } : p))
+/** The position shared by the pages on `side` (the first one's when they differ), or null when that side has no pages. */
+export const alignOfSide = (plan, side, perSheet = 1) => plan.find((_, i) => sideOfPage(i, perSheet) === side)?.align ?? null
 
 export const toPageEdits = (plan, n, stamp = null) => {
   const stampOn = stampActive(stamp)
@@ -66,10 +79,23 @@ export const undo = (h) => (h.past.length ? { past: h.past.slice(0, -1), present
 export const redo = (h) => (h.future.length ? { past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) } : h)
 
 // ---------- images: several to a sheet, or copies of each ----------
+/** A dragged picture stays inside half a cell of the middle; its size can go from 20% to 400%. Same limits as the server. */
+export const MAX_OFFSET = 0.5
+export const ZOOM_MIN = 0.2
+export const ZOOM_MAX = 4
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
+const round4 = (v) => Math.round(v * 1e4) / 1e4
+/** Place a picture: `x`/`y` = distance from the middle of its cell as a fraction of the cell, `zoom` = size. Defaults are dropped. */
+export function placeImage(img, { x = img.x ?? 0, y = img.y ?? 0, zoom = img.zoom ?? 1 } = {}) {
+  const { x: _x, y: _y, zoom: _z, ...rest } = img
+  const nx = round4(clamp(x, -MAX_OFFSET, MAX_OFFSET)), ny = round4(clamp(y, -MAX_OFFSET, MAX_OFFSET)), nz = round4(clamp(zoom, ZOOM_MIN, ZOOM_MAX))
+  return { ...rest, ...(nx !== 0 && { x: nx }), ...(ny !== 0 && { y: ny }), ...(nz !== 1 && { zoom: nz }) }
+}
+export const isPlaced = (img) => !!(img.x || img.y || (img.zoom && img.zoom !== 1))
 export const defaultSheet = (primaryId) => ({ per_page: 1, mode: 'sequence', fit: 'fit', margin: 5, images: [{ document_id: primaryId, rot: 0 }] })
 export const isDefaultSheet = (s, primaryId) =>
   s.per_page === 1 && s.fit === 'fit' && s.margin === 5 && s.images.length === 1
-  && s.images[0].document_id === primaryId && s.images[0].rot === 0
+  && s.images[0].document_id === primaryId && s.images[0].rot === 0 && !isPlaced(s.images[0])
 export const toSheetEdits = (sheet, primaryId) => (isDefaultSheet(sheet, primaryId) ? null : { sheet })
 
 export const sheetPageCount = (s) => (s.mode === 'copies' ? s.images.length : Math.ceil(s.images.length / s.per_page))
@@ -118,6 +144,9 @@ export function validateEdits(edits, doc, imageIds = [], maxPages = 500) {
     if (!s.images.every((i) => imageIds.includes(i.document_id))) throw new Error('One of the selected images is not available.')
     if (!s.images.some((i) => i.document_id === doc.id)) throw new Error('The image you are editing must be part of the layout.')
     if (!Number.isInteger(s.margin) || s.margin < 0 || s.margin > 20) throw new Error('Margin must be between 0 and 20 mm.')
+    for (const i of s.images) {
+      for (const k of ['x', 'y', 'zoom']) if (i[k] !== undefined && !Number.isFinite(i[k])) throw new Error(k === 'zoom' ? 'Unsupported picture size.' : 'Unsupported picture position.')
+    }
     if (sheetPageCount(s) > maxPages) throw new Error(`A print job is limited to ${maxPages} pages.`)
     return edits
   }
@@ -125,6 +154,7 @@ export function validateEdits(edits, doc, imageIds = [], maxPages = 500) {
   const pages = edits.pages ?? []
   if (!pages.length) throw new Error('Keep at least one page to print.')
   if (pages.length > maxPages) throw new Error(`A print job is limited to ${maxPages} pages.`)
+  if (pages.some((p) => p.align !== undefined && !ALIGNS.includes(p.align))) throw new Error('Unsupported page position.')
   if (pages.some((p) => p.src !== null && (!Number.isInteger(p.src) || p.src < 1 || p.src > doc.page_count))) throw new Error('One of the edited pages does not exist in the document.')
   if (!pages.some((p) => p.src !== null)) throw new Error('Keep at least one page with content.')
   return edits

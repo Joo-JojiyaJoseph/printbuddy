@@ -33,8 +33,27 @@ describe('document page plan', () => {
     expect(P.removePage(withBlank, 1)).toHaveLength(1)
   })
   it('position applies to one page or all', () => {
-    expect(P.setAlign(P.identityPlan(2), 1, 'tl').map((x) => x.align)).toEqual(['fit', 'tl'])
+    expect(P.setAlign(P.identityPlan(2), 1, 'tl').map((x) => x.align)).toEqual(['edge', 'tl'])
     expect(P.setAlignAll(P.identityPlan(2), 'fill').every((x) => x.align === 'fill')).toBe(true)
+  })
+  it('double-sided: fronts and backs are positioned separately', () => {
+    const plan = P.identityPlan(5)
+    expect([0, 1, 2, 3, 4].map((i) => P.sideOfPage(i))).toEqual(['front', 'back', 'front', 'back', 'front'])
+    const next = P.setAlignSide(plan, 'back', 'tl')
+    expect(next.map((x) => x.align)).toEqual(['edge', 'tl', 'edge', 'tl', 'edge'])
+    expect(P.alignOfSide(next, 'back')).toBe('tl')
+    expect(P.alignOfSide(next, 'front')).toBe('edge')
+    expect(P.alignOfSide(P.identityPlan(1), 'back')).toBeNull() // a single page has no back
+    expect(P.toPageEdits(next, 5).pages.map((x) => x.align)).toEqual(['edge', 'tl', 'edge', 'tl', 'edge'])
+  })
+  it('double-sided with several pages to a sheet: sides follow the sheet, not the page', () => {
+    const plan = P.identityPlan(6) // 2 per sheet -> sheets: [0,1] front, [2,3] back, [4,5] front
+    expect([0, 1, 2, 3, 4, 5].map((i) => P.sideOfPage(i, 2))).toEqual(['front', 'front', 'back', 'back', 'front', 'front'])
+    expect(P.setAlignSide(plan, 'back', 'fill', 2).map((x) => x.align)).toEqual(['edge', 'edge', 'fill', 'fill', 'edge', 'edge'])
+  })
+  it('an unedited document is the "edge" default, which is what prints', () => {
+    expect(P.identityPlan(2).every((x) => x.align === 'edge')).toBe(true)
+    expect(P.isIdentity(P.setAlignAll(P.identityPlan(2), 'fill'), 2)).toBe(false)
   })
   it('edits round-trip through the API shape', () => {
     const plan = P.removePage(P.identityPlan(n), 0)
@@ -117,5 +136,29 @@ describe('validateEdits mirrors the server rules', () => {
     expect(P.describeEdits({ pages: [{ src: 1, rot: 90 }, { src: null, rot: 0 }] })).toEqual([['Page edits', '2 pages · 1 rotated · 1 blank']])
     expect(P.describeEdits(null)).toEqual([])
     expect(P.describeEdits({ sheet: { per_page: 2, mode: 'copies', fit: 'fill', images: [{}] } })[0][1]).toContain('copies of each image')
+  })
+})
+
+describe('placing a picture by dragging', () => {
+  const img = { document_id: 'a', rot: 0 }
+  it('keeps only what differs from the default', () => {
+    expect(P.placeImage(img, {})).toEqual(img)
+    expect(P.placeImage(img, { x: 0.2, zoom: 0.5 })).toEqual({ ...img, x: 0.2, zoom: 0.5 })
+    expect(P.placeImage({ ...img, x: 0.2 }, { x: 0 })).toEqual(img) // dragged back to the middle = no edit
+  })
+  it('stays inside the same limits as the server', () => {
+    expect(P.placeImage(img, { x: 5, y: -5, zoom: 99 })).toEqual({ ...img, x: 0.5, y: -0.5, zoom: 4 })
+    expect(P.placeImage(img, { zoom: 0.01 }).zoom).toBe(0.2)
+  })
+  it('a placed picture is an edit, so the layout is no longer the default', () => {
+    expect(P.toSheetEdits({ ...P.defaultSheet('a'), images: [P.placeImage({ document_id: 'a', rot: 0 }, { x: 0.1 })] }, 'a')).not.toBeNull()
+    expect(P.toSheetEdits(P.defaultSheet('a'), 'a')).toBeNull()
+  })
+  it('the demo server refuses non-numeric positions', () => {
+    const doc = { id: 'a', kind: 'png' }
+    const sheet = (i) => ({ sheet: { ...P.defaultSheet('a'), images: [{ document_id: 'a', rot: 0, ...i }] } })
+    expect(() => P.validateEdits(sheet({ x: 0.2 }), doc, ['a'])).not.toThrow()
+    expect(() => P.validateEdits(sheet({ x: '0.2' }), doc, ['a'])).toThrow(/position/)
+    expect(() => P.validateEdits(sheet({ zoom: NaN }), doc, ['a'])).toThrow(/size/)
   })
 })

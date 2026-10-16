@@ -23,17 +23,20 @@ class TransformPdf extends \FPDF
     /**
      * Draw a picture inside a box. `$rot` = extra clockwise quarter turn (0/90/180/270); `$px`/`$py` = the picture's own
      * pixel size, `$mode` contain|cover|actual (actual needs `$mmW`/`$mmH` = its real size).
+     * `$dx`/`$dy` move the picture from the middle of the box (fractions of the box) and `$zoom` resizes it; the box still clips it.
      */
-    public function placeInBox(string $file, string $type, int $px, int $py, int $rot, float $bx, float $by, float $bw, float $bh, string $mode, float $mmW = 0, float $mmH = 0): array
+    public function placeInBox(string $file, string $type, int $px, int $py, int $rot, float $bx, float $by, float $bw, float $bh, string $mode, float $mmW = 0, float $mmH = 0, float $dx = 0.0, float $dy = 0.0, float $zoom = 1.0): array
     {
         $quarter = $rot % 180 !== 0;
         $ew = $quarter ? ($mmH ?: $py) : ($mmW ?: $px);   // size after rotation
         $eh = $quarter ? ($mmW ?: $px) : ($mmH ?: $py);
         [$dw, $dh] = PrintGeometry::fitSize((float) $ew, (float) $eh, $bw, $bh, $mode);
+        $dw *= $zoom;   // customer's resize, around the picture's own middle
+        $dh *= $zoom;
         $iw = $quarter ? $dh : $dw;   // size of the unrotated picture
         $ih = $quarter ? $dw : $dh;
-        $cx = $bx + $bw / 2;
-        $cy = $by + $bh / 2;
+        $cx = $bx + $bw / 2 + $dx * $bw;   // customer's drag: fractions of the box, so it is the same on every paper size
+        $cy = $by + $bh / 2 + $dy * $bh;
 
         $this->clip($bx, $by, $bw, $bh);
         if ($rot !== 0) {

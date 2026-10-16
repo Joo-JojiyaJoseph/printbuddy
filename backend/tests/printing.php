@@ -133,6 +133,20 @@ if (!$composer->available()) {
     $r = $composer->compose($sheet(['mode' => 'copies', 'per_page' => 4, 'images' => [['document_id' => 'r', 'rot' => 0]]]), $isrc('r'), $o);
     check('4 copies of one image on a single sheet (all four cells red)', $r['pages'] === 1 && $is($px($o, 1, .25, .25), [255, 0, 0]) && $is($px($o, 1, .75, .25), [255, 0, 0]) && $is($px($o, 1, .25, .75), [255, 0, 0]) && $is($px($o, 1, .75, .75), [255, 0, 0]));
 
+    // dragging: a half-size picture pushed left by a quarter of the sheet lands in the left half
+    $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
+    $composer->compose($sheet(['per_page' => 1, 'margin' => 0, 'images' => [['document_id' => 'r', 'rot' => 0]]]), $isrc('r'), $o);
+    check('centred picture covers the middle of the sheet', $is($px($o, 1, .5, .5), [255, 0, 0]));
+    $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
+    $composer->compose($sheet(['per_page' => 1, 'margin' => 0, 'images' => [['document_id' => 'r', 'rot' => 0, 'x' => -0.25, 'zoom' => 0.5]]]), $isrc('r'), $o);
+    check('dragged left and made smaller: red on the left, white on the right', $is($px($o, 1, .25, .5), [255, 0, 0]) && $is($px($o, 1, .75, .5), [255, 255, 255]));
+    $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
+    $composer->compose($sheet(['per_page' => 1, 'margin' => 0, 'images' => [['document_id' => 'r', 'rot' => 0, 'y' => -0.4, 'zoom' => 0.5]]]), $isrc('r'), $o);
+    check('dragged up: red near the top, white at the bottom', $is($px($o, 1, .5, .1), [255, 0, 0]) && $is($px($o, 1, .5, .9), [255, 255, 255]));
+    $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
+    $composer->compose($sheet(['per_page' => 2, 'margin' => 0, 'images' => [['document_id' => 'r', 'rot' => 0, 'x' => 0.5, 'zoom' => 2], ['document_id' => 'b', 'rot' => 0]]]), $isrc('r'), $o);
+    check('a big dragged picture is clipped to its own cell (the next cell stays blue)', $is($px($o, 1, .5, .75), [0, 0, 255]));
+
     $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
     $composer->compose($sheet(['per_page' => 1, 'margin' => 0, 'fit' => 'fill', 'images' => [['document_id' => 's', 'rot' => 0]]]), $isrc('s'), $o);
     check('unrotated: red on the left, blue on the right', $is($px($o, 1, .1, .5), [255, 0, 0]) && $is($px($o, 1, .9, .5), [0, 0, 255]));

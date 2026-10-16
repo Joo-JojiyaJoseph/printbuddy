@@ -218,7 +218,8 @@ final class PrintFileComposer
                 $type = $info['kind'] === 'png' ? 'PNG' : 'JPG';
                 $rot = ((int) ($img['rot'] ?? 0) + ($type === 'JPG' ? PrintGeometry::exifRotation(PrintGeometry::jpegOrientation($info['path'])) : 0)) % 360;
                 [$bx, $by, $bw, $bh] = $cells[$i];
-                $pdf->placeInBox($info['path'], $type, $size[0], $size[1], $rot, $bx, $by, $bw, $bh, $mode);
+                $pdf->placeInBox($info['path'], $type, $size[0], $size[1], $rot, $bx, $by, $bw, $bh, $mode, 0, 0,
+                    (float) ($img['x'] ?? 0), (float) ($img['y'] ?? 0), (float) ($img['zoom'] ?? 1));
             }
         }
         $pdf->Output('F', $target);

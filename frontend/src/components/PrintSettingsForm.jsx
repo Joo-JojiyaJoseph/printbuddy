@@ -6,7 +6,6 @@ import { PAPER_SIZES } from '../utils/printOptions'
 const label = 'mb-1.5 block text-sm font-bold'
 export default function PrintSettingsForm({ value, onChange, rangeError, pageCount, showLayout = false }) {
   const set = (k, v) => onChange({ ...value, [k]: v })
-  const packed = showLayout && (value.pages_per_sheet ?? 1) > 1 // each page is fitted into its own box, so Scaling does not apply
   const step = (d) => set('copies', Math.min(100, Math.max(1, value.copies + d)))
   return (
     <div className="space-y-4">
@@ -46,9 +45,6 @@ export default function PrintSettingsForm({ value, onChange, rangeError, pageCou
       <div><span className={label}>Sides</span>
         <Segmented label="Sides" value={value.duplex ? 'double' : 'single'} onChange={(v) => set('duplex', v === 'double')}
           options={[{ value: 'single', label: 'Single-sided' }, { value: 'double', label: 'Double-sided' }]} /></div>
-      {!packed && <div><span className={label}>Scaling</span>
-        <Segmented label="Scaling" value={value.scaling} onChange={(v) => set('scaling', v)}
-          options={[{ value: 'fit', label: 'Fit' }, { value: 'fill', label: 'Fill' }, { value: 'actual', label: 'Actual size' }]} /></div>}
     </div>
   )
 }
