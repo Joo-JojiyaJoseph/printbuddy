@@ -147,6 +147,25 @@ if (!$composer->available()) {
     $composer->compose($sheet(['per_page' => 2, 'margin' => 0, 'images' => [['document_id' => 'r', 'rot' => 0, 'x' => 0.5, 'zoom' => 2], ['document_id' => 'b', 'rot' => 0]]]), $isrc('r'), $o);
     check('a big dragged picture is clipped to its own cell (the next cell stays blue)', $is($px($o, 1, .5, .75), [0, 0, 255]));
 
+    // cropping: 's' is red on the left half and blue on the right half
+    $one = fn(array $img, string $fit = 'fill') => $sheet(['per_page' => 1, 'margin' => 0, 'fit' => $fit, 'images' => [['document_id' => 's', 'rot' => 0] + $img]]);
+    $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
+    $composer->compose($one(['crop' => ['l' => 0, 't' => 0, 'r' => 0.5, 'b' => 0]]), $isrc('s'), $o);
+    check('cropping off the right half leaves only red, filling the sheet', $is($px($o, 1, .1, .5), [255, 0, 0]) && $is($px($o, 1, .9, .5), [255, 0, 0]));
+    $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
+    $composer->compose($one(['crop' => ['l' => 0.5, 't' => 0, 'r' => 0, 'b' => 0]]), $isrc('s'), $o);
+    check('cropping off the left half leaves only blue', $is($px($o, 1, .1, .5), [0, 0, 255]) && $is($px($o, 1, .9, .5), [0, 0, 255]));
+    $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
+    $composer->compose($one(['crop' => ['l' => 0.25, 't' => 0, 'r' => 0.25, 'b' => 0]], 'fit'), $isrc('s'), $o);
+    check('a middle crop keeps the red/blue boundary in the middle of the sheet', $is($px($o, 1, .4, .5), [255, 0, 0]) && $is($px($o, 1, .6, .5), [0, 0, 255]));
+    $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
+    $composer->compose($one(['rot' => 90, 'crop' => ['l' => 0, 't' => 0, 'r' => 0.5, 'b' => 0]]), $isrc('s'), $o);
+    check('crop then rotate: the red half, turned to the top, fills the sheet', $is($px($o, 1, .5, .1), [255, 0, 0]) && $is($px($o, 1, .5, .9), [255, 0, 0]));
+    $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
+    $composer->compose($one(['crop' => ['l' => 0, 't' => 0, 'r' => 0, 'b' => 0.5]]), ['kind' => 'jpg', 'id' => 'e', 'image_paths' => ['s' => ['path' => $jpeg(80, 40, [255, 0, 0], [0, 0, 255], 6), 'kind' => 'jpg'], 'e' => ['path' => $jpeg(80, 40, [255, 0, 0], [0, 0, 255], 6), 'kind' => 'jpg']]], $o);
+    check('a crop made on an upright phone photo (EXIF): trimming the bottom half removes the blue half the customer saw at the bottom', $is($px($o, 1, .5, .1), [255, 0, 0]) && $is($px($o, 1, .5, .9), [255, 0, 0]));
+    check('crop maths for EXIF turns', PrintGeometry::cropToRaw(['l' => .1, 't' => .2, 'r' => .3, 'b' => .4], 0) === ['l' => .1, 't' => .2, 'r' => .3, 'b' => .4] && PrintGeometry::cropToRaw(['l' => .1, 't' => .2, 'r' => .3, 'b' => .4], 90) === ['l' => .2, 't' => .3, 'r' => .4, 'b' => .1] && PrintGeometry::cropToRaw(['l' => .1, 't' => .2, 'r' => .3, 'b' => .4], 180) === ['l' => .3, 't' => .4, 'r' => .1, 'b' => .2] && PrintGeometry::cropToRaw(['l' => .1, 't' => .2, 'r' => .3, 'b' => .4], 270) === ['l' => .4, 't' => .1, 'r' => .2, 'b' => .3]);
+
     $o = tempnam(sys_get_temp_dir(), 'pbi') . '.pdf';
     $composer->compose($sheet(['per_page' => 1, 'margin' => 0, 'fit' => 'fill', 'images' => [['document_id' => 's', 'rot' => 0]]]), $isrc('s'), $o);
     check('unrotated: red on the left, blue on the right', $is($px($o, 1, .1, .5), [255, 0, 0]) && $is($px($o, 1, .9, .5), [0, 0, 255]));

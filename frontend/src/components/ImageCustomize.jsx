@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Move, RotateCcw, RotateCw } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Crop, Move, RotateCcw, RotateCw } from 'lucide-react'
+import CropModal from './CropModal'
 import SheetPaper from './SheetPaper'
 import PreviewDock from './PreviewDock'
 import PrintSettingsForm from './PrintSettingsForm'
@@ -11,7 +12,7 @@ const iconBtn = 'grid size-10 place-items-center rounded-xl border border-[var(-
 const sideName = (i) => (i % 2 === 0 ? 'front' : 'back')
 
 /** Size slider and reset for the picture that is selected on the sheet. */
-function PlaceBar({ img, name, onPlace }) {
+function PlaceBar({ img, name, onPlace, onCrop }) {
   const pct = Math.round((img?.zoom ?? 1) * 100)
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-white p-2.5">
@@ -22,9 +23,10 @@ function PlaceBar({ img, name, onPlace }) {
           onChange={(e) => onPlace({ zoom: Number(e.target.value) / 100 })} />
       </div>
       <div className="flex items-center gap-2">
-        <p className="m-0 min-w-0 flex-1 text-xs text-[var(--muted)]">Drag the picture on the sheet. Arrow keys nudge it.</p>
+        <button type="button" disabled={!img} onClick={onCrop} className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm font-bold disabled:opacity-40"><Crop size={16} aria-hidden="true" />Crop{img?.crop ? 'ped' : ''}</button>
+        <p className="m-0 min-w-0 flex-1 text-xs text-[var(--muted)]">Drag the picture to move it, a corner to resize it.</p>
         <button type="button" disabled={!img || (!img.x && !img.y)} onClick={() => onPlace({ x: 0, y: 0 })} className="min-h-9 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm font-bold disabled:opacity-40">Centre it</button>
-        <button type="button" disabled={!img || !isPlaced(img)} onClick={() => onPlace({ x: 0, y: 0, zoom: 1 })} className="min-h-9 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm font-bold disabled:opacity-40">Reset</button>
+        <button type="button" disabled={!img || !isPlaced(img)} onClick={() => onPlace({ x: 0, y: 0, zoom: 1, crop: null })} className="min-h-9 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm font-bold disabled:opacity-40">Reset</button>
       </div>
     </div>
   )
@@ -45,6 +47,7 @@ export default function ImageCustomize({ doc, images, edits, onEdits, settings, 
   useEffect(() => { if (!edits?.sheet) onEdits(toSheetEdits(sheet, doc.id)) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [page, setPage] = useState(0)
   const [selId, setSelId] = useState(doc.id)
+  const [cropping, setCropping] = useState(false)
   const byId = useMemo(() => Object.fromEntries(images.map((d) => [d.id, d])), [images])
   const selected = sheet.images.map((i) => i.document_id)
   const pages = sheetPages(sheet)
@@ -76,7 +79,7 @@ export default function ImageCustomize({ doc, images, edits, onEdits, settings, 
       size={paper.size} orientation={paper.orientation} grayscale={settings.color_mode === 'bw'} label={`Sheet ${cur + 1} preview`}
       selectedId={activeId} onSelect={setSelId} onPlace={place} {...extra} />
   )
-  const placeBar = <PlaceBar img={active} name={byId[activeId]?.original_name} onPlace={(patch) => activeId && place(activeId, patch)} />
+  const placeBar = <PlaceBar img={active} name={byId[activeId]?.original_name} onPlace={(patch) => activeId && place(activeId, patch)} onCrop={() => setCropping(true)} />
 
   return (
     <div className="mx-auto max-w-3xl md:grid md:max-w-none md:grid-cols-2 md:items-start md:gap-6 lg:gap-10">
@@ -151,6 +154,10 @@ export default function ImageCustomize({ doc, images, edits, onEdits, settings, 
         <div className="mt-4"><PrintSettingsForm value={settings} onChange={({ edits: _e, ...rest }) => setSettings(rest)} rangeError={rangeError} pageCount={sheetsCount} /></div>
         {tail}
       </div>
+      {cropping && active && byId[activeId] && (
+        <CropModal doc={byId[activeId]} rot={active.rot} crop={active.crop} onClose={() => setCropping(false)}
+          onApply={(crop) => { place(activeId, { crop }); setCropping(false) }} />
+      )}
     </div>
   )
 }

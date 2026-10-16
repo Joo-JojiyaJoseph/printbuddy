@@ -25,11 +25,16 @@ class TransformPdf extends \FPDF
      * pixel size, `$mode` contain|cover|actual (actual needs `$mmW`/`$mmH` = its real size).
      * `$dx`/`$dy` move the picture from the middle of the box (fractions of the box) and `$zoom` resizes it; the box still clips it.
      */
-    public function placeInBox(string $file, string $type, int $px, int $py, int $rot, float $bx, float $by, float $bw, float $bh, string $mode, float $mmW = 0, float $mmH = 0, float $dx = 0.0, float $dy = 0.0, float $zoom = 1.0): array
+    public function placeInBox(string $file, string $type, int $px, int $py, int $rot, float $bx, float $by, float $bw, float $bh, string $mode, float $mmW = 0, float $mmH = 0, float $dx = 0.0, float $dy = 0.0, float $zoom = 1.0, ?array $crop = null): array
     {
         $quarter = $rot % 180 !== 0;
-        $ew = $quarter ? ($mmH ?: $py) : ($mmW ?: $px);   // size after rotation
-        $eh = $quarter ? ($mmW ?: $px) : ($mmH ?: $py);
+        // `$crop` (l, t, r, b: fractions of the stored picture) keeps only part of it; everything below works on that part.
+        $keepW = 1.0 - ($crop['l'] ?? 0) - ($crop['r'] ?? 0);
+        $keepH = 1.0 - ($crop['t'] ?? 0) - ($crop['b'] ?? 0);
+        $srcW = ($mmW ?: $px) * $keepW;
+        $srcH = ($mmH ?: $py) * $keepH;
+        $ew = $quarter ? $srcH : $srcW;   // size after rotation
+        $eh = $quarter ? $srcW : $srcH;
         [$dw, $dh] = PrintGeometry::fitSize((float) $ew, (float) $eh, $bw, $bh, $mode);
         $dw *= $zoom;   // customer's resize, around the picture's own middle
         $dh *= $zoom;
@@ -42,7 +47,16 @@ class TransformPdf extends \FPDF
         if ($rot !== 0) {
             $this->rotateAbout(-$rot, $cx, $cy); // PDF angles run counter-clockwise; ours are clockwise
         }
-        $this->Image($file, $cx - $iw / 2, $cy - $ih / 2, $iw, $ih, $type);
+        if ($crop === null) {
+            $this->Image($file, $cx - $iw / 2, $cy - $ih / 2, $iw, $ih, $type);
+        } else {
+            // draw the whole picture so that the kept part lands on the target rectangle, and clip to that rectangle
+            $fw = $iw / $keepW;
+            $fh = $ih / $keepH;
+            $this->clip($cx - $iw / 2, $cy - $ih / 2, $iw, $ih);
+            $this->Image($file, $cx - $iw / 2 - ($crop['l'] ?? 0) * $fw, $cy - $ih / 2 - ($crop['t'] ?? 0) * $fh, $fw, $fh, $type);
+            $this->endClip();
+        }
         if ($rot !== 0) {
             $this->endRotate();
         }

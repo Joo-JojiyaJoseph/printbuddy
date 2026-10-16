@@ -147,6 +147,23 @@ final class PrintGeometry
         return 1;
     }
 
+    /**
+     * A crop the customer made on the upright picture (what the browser shows, EXIF applied), expressed on the stored
+     * pixels, which may be turned by `$exifRotation` clockwise quarter turns to look upright.
+     *
+     * @param  array{l:float,t:float,r:float,b:float}  $c
+     * @return array{l:float,t:float,r:float,b:float}
+     */
+    public static function cropToRaw(array $c, int $exifRotation): array
+    {
+        return match ($exifRotation % 360) {
+            90 => ['l' => $c['t'], 't' => $c['r'], 'r' => $c['b'], 'b' => $c['l']],
+            180 => ['l' => $c['r'], 't' => $c['b'], 'r' => $c['l'], 'b' => $c['t']],
+            270 => ['l' => $c['b'], 't' => $c['l'], 'r' => $c['t'], 'b' => $c['r']],
+            default => $c,
+        };
+    }
+
     /** Clockwise quarter turns needed to display a JPEG upright for an EXIF orientation. */
     public static function exifRotation(int $orientation): int
     {

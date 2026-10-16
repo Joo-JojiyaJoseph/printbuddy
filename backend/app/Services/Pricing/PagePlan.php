@@ -12,7 +12,7 @@ use InvalidArgumentException;
  *      [{src: 1-based source page | null (blank), rot: 0|90|180|270, align: fit|center|tl|fill, marks?: [...]}]
  *      marks are drawings ON TOP of the original page (text, white-out cover, highlight) in fractions of the displayed
  *      page; edits.stamp = {numbers: bool, watermark: string} is applied to every output page.
- *  - images (JPG / PNG):            edits.sheet = {per_page, mode, fit, margin, images:[{document_id, rot, x?, y?, zoom?}]}
+ *  - images (JPG / PNG):            edits.sheet = {per_page, mode, fit, margin, images:[{document_id, rot, x?, y?, zoom?, crop?:{l,t,r,b}}]}
  *      x / y = where the customer dragged the picture (fraction of its cell, -0.5..0.5 from the middle), zoom = its size (0.2..4)
  *      mode 'sequence' packs images in order, `per_page` to a sheet;
  *      mode 'copies' repeats each image `per_page` times on its own sheet.
@@ -29,6 +29,8 @@ final class PagePlan
     public const MAX_OFFSET = 0.5;
     public const ZOOM_MIN = 0.2;
     public const ZOOM_MAX = 4.0;
+    /** A crop may trim each side up to 90%, but at least a tenth of the picture must stay on each axis. */
+    public const CROP_MAX_TRIM = 0.9;
     public const PER_PAGE = [1, 2, 4, 6];
     /** Pages (slides) of a document printed on one sheet: a print setting for documents, billed per printed sheet side. */
     public const PAGES_PER_SHEET = [1, 2, 4, 6, 9];
@@ -227,6 +229,30 @@ final class PagePlan
         return round(max($min, min($max, (float) $v)), 4);
     }
 
+    /**
+     * Part of a picture trimmed away from each side, as fractions of the (upright, un-rotated) picture. Null when nothing is trimmed.
+     *
+     * @return array{l:float,t:float,r:float,b:float}|null
+     */
+    private static function crop(mixed $crop): ?array
+    {
+        if ($crop === null || $crop === []) {
+            return null;
+        }
+        if (! is_array($crop)) {
+            throw new InvalidArgumentException('Unsupported picture crop.');
+        }
+        $out = [];
+        foreach (['l', 't', 'r', 'b'] as $side) {
+            $out[$side] = self::number($crop[$side] ?? 0, 0.0, self::CROP_MAX_TRIM, 'Unsupported picture crop.');
+        }
+        if ($out['l'] + $out['r'] > self::CROP_MAX_TRIM + 1e-9 || $out['t'] + $out['b'] > self::CROP_MAX_TRIM + 1e-9) {
+            throw new InvalidArgumentException('That crop leaves too little of the picture.');
+        }
+
+        return array_sum($out) == 0.0 ? null : $out;
+    }
+
     private static function sheet(array $sheet, array $imageIds, string $primaryId, int $maxPages): array
     {
         $perPage = $sheet['per_page'] ?? 1;
@@ -268,6 +294,10 @@ final class PagePlan
             $zoom = self::number($img['zoom'] ?? 1, self::ZOOM_MIN, self::ZOOM_MAX, 'Unsupported picture size.');
             if ($zoom != 1.0) {
                 $item['zoom'] = $zoom;
+            }
+            $crop = self::crop($img['crop'] ?? null);
+            if ($crop !== null) {
+                $item['crop'] = $crop;
             }
             $out[] = $item;
         }

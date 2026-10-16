@@ -18,7 +18,7 @@ export default function PreviewDock({ preview, children, after, title = 'Preview
       <div className="sticky top-0 z-20 -mx-4 flex items-center gap-3 border-b border-[var(--border)] bg-white px-4 py-2 shadow-[0_6px_14px_rgba(16,36,43,.06)] md:static md:mx-0 md:block md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
         {interactive ? (
           <div className={`relative w-[5.25rem] shrink-0 md:mx-auto md:py-2 ${mdClass}`}>
-            <div className="pointer-events-none md:pointer-events-auto">{preview}</div>
+            <div className="pointer-events-none md:pointer-events-auto max-md:[&_[data-corner]]:hidden max-md:[&_[data-testid=resize-box]]:hidden">{preview}</div>
             <button type="button" aria-label="Enlarge preview" onClick={() => setBig(true)} className="absolute inset-0 md:hidden" />
             <span aria-hidden="true" className="pointer-events-none absolute bottom-1 right-1 grid size-5 place-items-center rounded-full bg-[#10242B]/70 text-white md:hidden"><Maximize2 size={11} /></span>
           </div>

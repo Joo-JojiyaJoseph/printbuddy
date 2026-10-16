@@ -85,13 +85,38 @@ export const ZOOM_MIN = 0.2
 export const ZOOM_MAX = 4
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 const round4 = (v) => Math.round(v * 1e4) / 1e4
-/** Place a picture: `x`/`y` = distance from the middle of its cell as a fraction of the cell, `zoom` = size. Defaults are dropped. */
-export function placeImage(img, { x = img.x ?? 0, y = img.y ?? 0, zoom = img.zoom ?? 1 } = {}) {
-  const { x: _x, y: _y, zoom: _z, ...rest } = img
-  const nx = round4(clamp(x, -MAX_OFFSET, MAX_OFFSET)), ny = round4(clamp(y, -MAX_OFFSET, MAX_OFFSET)), nz = round4(clamp(zoom, ZOOM_MIN, ZOOM_MAX))
-  return { ...rest, ...(nx !== 0 && { x: nx }), ...(ny !== 0 && { y: ny }), ...(nz !== 1 && { zoom: nz }) }
+/** Crop: each side trimmed away as a fraction of the upright picture. Each axis keeps at least a tenth. */
+export const CROP_MAX_TRIM = 0.9
+export const CROP_SIDES = ['l', 't', 'r', 'b']
+/** A clean crop (4 decimals, never trimming past the limit), or null when nothing is trimmed. */
+export function normCrop(c) {
+  if (!c) return null
+  const o = {}
+  for (const k of CROP_SIDES) o[k] = round4(clamp(Number.isFinite(c[k]) ? c[k] : 0, 0, CROP_MAX_TRIM))
+  for (const [a, b] of [['l', 'r'], ['t', 'b']]) {
+    const over = o[a] + o[b] - CROP_MAX_TRIM
+    if (over > 1e-9) { o[a] = round4(o[a] - over / 2); o[b] = round4(o[b] - over / 2) }
+  }
+  return CROP_SIDES.some((k) => o[k] > 0) ? o : null
 }
-export const isPlaced = (img) => !!(img.x || img.y || (img.zoom && img.zoom !== 1))
+/**
+ * A crop drawn on the picture as it is displayed (after the customer's turn of `rot` degrees) as a crop of the upright picture,
+ * which is what is stored and printed. Turning is clockwise, so `fromDisplayed` undoes it and `toDisplayed` applies it.
+ */
+export function cropFromDisplayed(c, rot) {
+  if (!c) return null
+  return normCrop({ 0: c, 90: { l: c.t, t: c.r, r: c.b, b: c.l }, 180: { l: c.r, t: c.b, r: c.l, b: c.t }, 270: { l: c.b, t: c.l, r: c.t, b: c.r } }[((rot % 360) + 360) % 360])
+}
+export const cropToDisplayed = (c, rot) => cropFromDisplayed(c, (360 - rot) % 360)
+/** Place a picture: `x`/`y` = distance from the middle of its cell as a fraction of the cell, `zoom` = size, `crop` = trimmed sides. Defaults are dropped. */
+export function placeImage(img, patch = {}) {
+  const { x = img.x ?? 0, y = img.y ?? 0, zoom = img.zoom ?? 1 } = patch
+  const crop = 'crop' in patch ? normCrop(patch.crop) : normCrop(img.crop)
+  const { x: _x, y: _y, zoom: _z, crop: _c, ...rest } = img
+  const nx = round4(clamp(x, -MAX_OFFSET, MAX_OFFSET)), ny = round4(clamp(y, -MAX_OFFSET, MAX_OFFSET)), nz = round4(clamp(zoom, ZOOM_MIN, ZOOM_MAX))
+  return { ...rest, ...(nx !== 0 && { x: nx }), ...(ny !== 0 && { y: ny }), ...(nz !== 1 && { zoom: nz }), ...(crop && { crop }) }
+}
+export const isPlaced = (img) => !!(img.x || img.y || (img.zoom && img.zoom !== 1) || normCrop(img.crop))
 export const defaultSheet = (primaryId) => ({ per_page: 1, mode: 'sequence', fit: 'fit', margin: 5, images: [{ document_id: primaryId, rot: 0 }] })
 export const isDefaultSheet = (s, primaryId) =>
   s.per_page === 1 && s.fit === 'fit' && s.margin === 5 && s.images.length === 1
@@ -145,6 +170,8 @@ export function validateEdits(edits, doc, imageIds = [], maxPages = 500) {
     if (!s.images.some((i) => i.document_id === doc.id)) throw new Error('The image you are editing must be part of the layout.')
     if (!Number.isInteger(s.margin) || s.margin < 0 || s.margin > 20) throw new Error('Margin must be between 0 and 20 mm.')
     for (const i of s.images) {
+      if (i.crop !== undefined && i.crop !== null && (typeof i.crop !== 'object' || CROP_SIDES.some((k) => i.crop[k] !== undefined && !Number.isFinite(i.crop[k])))) throw new Error('Unsupported picture crop.')
+      if (i.crop && (i.crop.l ?? 0) + (i.crop.r ?? 0) > CROP_MAX_TRIM + 1e-9 || i.crop && (i.crop.t ?? 0) + (i.crop.b ?? 0) > CROP_MAX_TRIM + 1e-9) throw new Error('That crop leaves too little of the picture.')
       for (const k of ['x', 'y', 'zoom']) if (i[k] !== undefined && !Number.isFinite(i[k])) throw new Error(k === 'zoom' ? 'Unsupported picture size.' : 'Unsupported picture position.')
     }
     if (sheetPageCount(s) > maxPages) throw new Error(`A print job is limited to ${maxPages} pages.`)

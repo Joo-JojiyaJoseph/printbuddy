@@ -132,3 +132,22 @@ test('a sheet that is only shown (not editable) is not draggable', () => {
   expect(screen.queryByRole('button')).toBeNull()
   expect(within(screen.getByRole('img', { name: 's' })).getByAltText('passport.png')).toBeInTheDocument()
 })
+
+test('Crop opens the crop dialog for the selected picture and the result is part of the layout', async () => {
+  class FakeImage { set src(v) { this.naturalWidth = 800; this.naturalHeight = 400; setTimeout(() => this.onload?.(), 0) } }
+  vi.stubGlobal('Image', FakeImage)
+  const { onEdits } = setup()
+  fireEvent.click(screen.getAllByRole('button', { name: /^Crop$/ })[0])
+  const box = await screen.findByTestId('crop-box')
+  box.getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, right: 400, bottom: 200, width: 400, height: 200 })
+  const h = document.querySelector('[data-handle="w"]')
+  fireEvent.pointerDown(h, { clientX: 0, clientY: 100, pointerId: 1, button: 0 })
+  fireEvent.pointerMove(h, { clientX: 100, clientY: 100, pointerId: 1 })
+  fireEvent.click(screen.getByRole('button', { name: 'Apply crop' }))
+  expect(last(onEdits).sheet.images[0].crop).toEqual({ l: 0.25, t: 0, r: 0, b: 0 })
+  expect(screen.queryByTestId('crop-box')).toBeNull()
+  expect(screen.getAllByRole('button', { name: /^Cropped$/ }).length).toBeGreaterThan(0)
+  fireEvent.click(screen.getAllByRole('button', { name: 'Reset' })[0]) // Reset also undoes the crop
+  expect(last(onEdits)).toBeNull()
+  vi.unstubAllGlobals()
+})

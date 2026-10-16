@@ -51,6 +51,10 @@ check('untouched picture keeps only id and rotation', $moved([]) === ['document_
 check('dragged position and size are kept', $moved(['x' => 0.25, 'y' => -0.1, 'zoom' => 0.5]) === ['document_id' => 'A', 'rot' => 0, 'x' => 0.25, 'y' => -0.1, 'zoom' => 0.5]);
 check('position is clamped to half a cell, size to 0.2..4', $moved(['x' => 9, 'y' => -9, 'zoom' => 99]) === ['document_id' => 'A', 'rot' => 0, 'x' => 0.5, 'y' => -0.5, 'zoom' => 4.0] && $moved(['zoom' => 0.01])['zoom'] === 0.2);
 check('position and size must be numbers', $bad(fn() => $moved(['x' => '0.2'])) && $bad(fn() => $moved(['y' => NAN])) && $bad(fn() => $moved(['zoom' => INF])));
+check('crop is kept, rounded, and dropped when nothing is trimmed', $moved(['crop' => ['l' => 0.1, 't' => 0.25, 'r' => 0, 'b' => 0.5]])['crop'] === ['l' => 0.1, 't' => 0.25, 'r' => 0.0, 'b' => 0.5] && !isset($moved(['crop' => ['l' => 0, 't' => 0, 'r' => 0, 'b' => 0]])['crop']) && !isset($moved(['crop' => []])['crop']));
+check('crop cannot take (nearly) the whole picture on either axis', $bad(fn() => $moved(['crop' => ['l' => 0.5, 'r' => 0.5]])) && $bad(fn() => $moved(['crop' => ['t' => 0.2, 'b' => 0.8]])) && !$bad(fn() => $moved(['crop' => ['l' => 0.45, 'r' => 0.45]])));
+check('a negative crop is clamped to nothing', !isset($moved(['crop' => ['l' => -0.1]])['crop']));
+check('crop values must be numbers', $bad(fn() => $moved(['crop' => ['l' => '0.1']])) && $bad(fn() => $moved(['crop' => 'all'])));
 check('whole page to the edge and real size are valid positions', $plan(['pages' => [['src' => 1, 'align' => 'edge'], ['src' => 2, 'align' => 'actual']]])['pages'][1]['align'] === 'actual');
 
 $rules = ['rates' => [['paper_size' => 'A4', 'color_mode' => 'bw', 'per_side_paise' => 200]], 'duplex_discount_bps' => 0, 'service_fee_paise' => 0, 'tax_bps' => 0];
