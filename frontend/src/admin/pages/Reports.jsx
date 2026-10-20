@@ -100,7 +100,7 @@ export default function Reports() {
         <>
           <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             {[['Revenue', formatINR(r.totals.revenue_paise)], ['Paid orders', r.totals.orders], ['Average order', formatINR(r.totals.average_order_paise)], ['Sides printed', r.totals.billable_sides]].map(([l, v]) => (
-              <div key={l} className="rounded-2xl border border-[var(--border)] bg-white p-4"><p className="m-0 text-xs font-semibold text-[var(--muted)]">{l}</p><p className="m-0 mt-1 text-2xl font-bold tracking-tight">{v}</p></div>
+              <div key={l} className="rounded-2xl border border-white bg-white p-4 shadow-[0_10px_26px_-12px_rgba(74,50,184,.25),0_0_0_1px_rgba(124,92,252,.07)] transition duration-300 hover:-translate-y-1"><p className="m-0 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">{l}</p><p className="m-0 mt-1 text-[1.625rem] font-extrabold tracking-tight">{v}</p></div>
             ))}
           </div>
           <Panel title="Revenue per day" action={<Btn onClick={() => setTable((t) => !t)}>{table ? 'Show chart' : 'Show table'}</Btn>}>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Inbox } from 'lucide-react'
 
 export const dt = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—')
 export const dateOnly = (iso) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—')
@@ -22,8 +22,8 @@ export function PageHead({ title, sub, children }) {
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="m-0 text-xl font-bold tracking-tight">{title}</h1>
-        {sub && <p className="m-0 mt-1 text-sm text-[var(--muted)]">{sub}</p>}
+        <h1 className="m-0 flex items-center gap-2.5 text-[1.375rem] font-extrabold tracking-tight"><i aria-hidden="true" className="h-6 w-1.5 rounded-full bg-gradient-to-b from-[#9a80ff] to-[#ec4a78]" />{title}</h1>
+        {sub && <p className="m-0 mt-1 pl-4 text-sm text-[var(--muted)]">{sub}</p>}
       </div>
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </div>
@@ -32,10 +32,10 @@ export function PageHead({ title, sub, children }) {
 
 export function Panel({ title, action, children, className = '' }) {
   return (
-    <section className={`min-w-0 rounded-2xl border border-[var(--border)] bg-white p-4 shadow-[0_4px_16px_rgba(74,50,184,.06)] ${className}`}>
+    <section className={`min-w-0 rounded-2xl border border-white bg-white p-5 shadow-[0_1px_2px_rgba(31,27,61,.05),0_10px_28px_-12px_rgba(74,50,184,.22),0_0_0_1px_rgba(124,92,252,.07)] transition-shadow duration-300 hover:shadow-[0_1px_2px_rgba(31,27,61,.05),0_18px_36px_-14px_rgba(74,50,184,.3),0_0_0_1px_rgba(124,92,252,.12)] ${className}`}>
       {(title || action) && (
-        <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          {title && <h2 className="m-0 text-[0.9375rem] font-bold">{title}</h2>}
+        <header className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)]/70 pb-3">
+          {title && <h2 className="m-0 text-base font-bold tracking-tight">{title}</h2>}
           {action}
         </header>
       )}
@@ -58,33 +58,33 @@ export const STATUS_TONE = {
 }
 export function Badge({ tone, children }) {
   const t = tone || STATUS_TONE[children] || 'mute'
-  return <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${TONES[t]}`}>{String(children).replace(/_/g, ' ')}</span>
+  return <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ring-1 ring-inset ${TONES[t]}`}><i aria-hidden="true" className="size-1.5 rounded-full bg-current" />{String(children).replace(/_/g, ' ')}</span>
 }
 
 export function Notice({ tone = 'info', children }) {
   const Icon = tone === 'good' ? CheckCircle2 : AlertCircle
   return (
-    <div role={tone === 'bad' ? 'alert' : 'status'} className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm ring-1 ring-inset ${TONES[tone]}`}>
+    <div role={tone === 'bad' ? 'alert' : 'status'} className={`flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 text-sm shadow-[0_2px_8px_-4px_rgba(31,27,61,.2)] ring-1 ring-inset ${TONES[tone]}`}>
       <Icon size={16} className="mt-0.5 shrink-0" aria-hidden="true" /><div className="min-w-0 [overflow-wrap:anywhere]">{children}</div>
     </div>
   )
 }
 
 const BTN = {
-  solid: 'bg-[var(--color-accent-2)] text-white hover:bg-[var(--color-accent)]',
-  ghost: 'bg-white text-[var(--text)] ring-1 ring-inset ring-[var(--border)] hover:bg-[var(--hi)]',
-  danger: 'bg-white text-red-700 ring-1 ring-inset ring-red-200 hover:bg-red-50',
+  solid: 'bg-gradient-to-b from-[#8f74ff] to-[#6246e6] text-white shadow-[0_3px_0_#4a32b8,0_8px_14px_-4px_rgba(74,50,184,.45),inset_0_1px_0_rgba(255,255,255,.35)] hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0.5 active:shadow-[0_1px_0_#4a32b8]',
+  ghost: 'bg-white text-[var(--text)] ring-1 ring-inset ring-[#d6cdf3] shadow-[0_2px_0_#e4dcfb] hover:-translate-y-0.5 hover:bg-[#f7f4ff] hover:ring-[#b9a9ef] active:translate-y-0.5 active:shadow-none',
+  danger: 'bg-white text-red-700 ring-1 ring-inset ring-red-300 shadow-[0_2px_0_#fbd5d5] hover:-translate-y-0.5 hover:bg-red-50 active:translate-y-0.5 active:shadow-none',
 }
 export function Btn({ variant = 'ghost', className = '', loading, children, ...p }) {
   return (
     <button type="button" {...p} disabled={p.disabled || loading}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-semibold transition disabled:opacity-50 ${BTN[variant]} ${className}`}>
+      className={`inline-flex min-h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 text-sm font-bold transition duration-150 disabled:pointer-events-none disabled:opacity-50 ${BTN[variant]} ${className}`}>
       {loading ? 'Please wait…' : children}
     </button>
   )
 }
 
-export const inputCls = 'min-h-9 w-full rounded-lg border border-[var(--border)] bg-white px-3 text-sm outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20'
+export const inputCls = 'min-h-10 w-full rounded-xl border border-[#ddd5f5] bg-white px-3 text-sm shadow-[inset_0_1px_2px_rgba(74,50,184,.06)] outline-none transition hover:border-[#b9a9ef] focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent)]/15'
 export function Field({ label, hint, children, className = '' }) {
   return (
     <label className={`block min-w-0 ${className}`}>
@@ -97,21 +97,26 @@ export function Field({ label, hint, children, className = '' }) {
 
 /** Scrolls sideways inside its own box on small screens, so a wide table never widens the page. */
 export function Table({ cols, rows, onRow, empty = 'Nothing here yet.', rowKey }) {
-  if (!rows?.length) return <p className="m-0 py-8 text-center text-sm text-[var(--muted)]">{empty}</p>
+  if (!rows?.length) return (
+    <div className="grid place-items-center gap-2 rounded-xl border border-dashed border-[#d6cdf3] bg-[#faf8ff] py-10 text-center">
+      <span className="grid size-11 place-items-center rounded-2xl bg-white text-[var(--color-accent)] shadow-[0_6px_14px_-4px_rgba(74,50,184,.3)]"><Inbox size={20} aria-hidden="true" /></span>
+      <p className="m-0 text-sm text-[var(--muted)]">{empty}</p>
+    </div>
+  )
   return (
-    <div className="-mx-4 overflow-x-auto px-4">
+    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-white">
       <table className="w-full min-w-max border-collapse text-sm">
         <thead>
-          <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
-            {cols.map((c) => <th key={c.key} className={`whitespace-nowrap px-2 py-2 font-semibold ${c.className || ''}`}>{c.label}</th>)}
+          <tr className="bg-gradient-to-b from-[#f7f4ff] to-[#efeafc] text-left text-[0.6875rem] uppercase tracking-wider text-[#5c5486]">
+            {cols.map((c) => <th key={c.key} className={`whitespace-nowrap border-b border-[var(--border)] px-3 py-2.5 font-bold ${c.className || ''}`}>{c.label}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={rowKey ? rowKey(r) : i} onClick={onRow ? () => onRow(r) : undefined}
               onKeyDown={onRow ? (e) => { if (e.key === 'Enter') onRow(r) } : undefined} tabIndex={onRow ? 0 : undefined}
-              className={`border-b border-[var(--border)]/60 last:border-0 ${onRow ? 'cursor-pointer hover:bg-[var(--hi)] focus-visible:bg-[var(--hi)]' : ''}`}>
-              {cols.map((c) => <td key={c.key} className={`px-2 py-2.5 align-middle ${c.className || ''}`}>{c.render ? c.render(r) : r[c.key] ?? '—'}</td>)}
+              className={`border-b border-[var(--border)]/60 transition-colors last:border-0 even:bg-[#fcfbff] ${onRow ? 'cursor-pointer hover:bg-[#f1ecff] focus-visible:bg-[#f1ecff] focus-visible:outline-none' : 'hover:bg-[#f8f6ff]'}`}>
+              {cols.map((c) => <td key={c.key} className={`px-3 py-3 align-middle ${c.className || ''}`}>{c.render ? c.render(r) : r[c.key] ?? '—'}</td>)}
             </tr>
           ))}
         </tbody>

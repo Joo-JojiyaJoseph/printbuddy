@@ -77,7 +77,7 @@ test('after printing, the confirmation promises the files are erased', async () 
   await setup()
   await screen.findByText('Waiting for payment…')
   fireEvent.click(screen.getByRole('button', { name: 'Customer pays' }))
-  expect(await screen.findByText(/Privacy: your files are erased/, {}, { timeout: 9000 })).toBeInTheDocument()
+  expect(await screen.findByText(/Privacy: your files are deleted/, {}, { timeout: 9000 })).toBeInTheDocument()
 }, 14000)
 
 describe('Razorpay card / netbanking window', () => {

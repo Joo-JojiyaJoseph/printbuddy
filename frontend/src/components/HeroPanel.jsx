@@ -3,7 +3,7 @@ import { FileText, ShieldCheck, Zap } from 'lucide-react'
 
 const FEATURES = [
   { icon: Zap, title: 'Fast & easy', text: 'Upload and print in a few taps', tint: 'bg-[#e6dfff] text-[#4a32b8]' },
-  { icon: ShieldCheck, title: 'Secure payment', text: 'UPI, confirmed by our server', tint: 'bg-[#dcf6ec] text-[#0f8f68]' },
+  { icon: ShieldCheck, title: 'Secure payment', text: 'UPI, card or netbanking. Instant', tint: 'bg-[#dcf6ec] text-[#0f8f68]' },
   { icon: FileText, title: 'Many formats', text: 'PDF, photos, Word, Excel, PowerPoint', tint: 'bg-[#e0d8fb] text-[#7c5cfc]' },
 ]
 

@@ -18,7 +18,7 @@ const objectUrl = (f) => { try { return URL.createObjectURL(f) } catch { return 
 function activeSession(token) {
   const s = load()[token]
   if (!s) throw new ApiError(404, 'Session not found.')
-  if (Date.parse(s.expires_at) < Date.now()) throw new ApiError(410, 'This session has expired.')
+  if (Date.parse(s.expires_at) < Date.now()) throw new ApiError(410, 'This QR code has expired. Please scan the code on the printer screen again.')
   return s
 }
 
@@ -56,7 +56,7 @@ export const mockApi = {
     const s = activeSession(token)
     if (claim) {
       const me = deviceId()
-      if (s.claimed_by && s.claimed_by !== me) throw new ApiError(423, 'This QR code is already being used by another phone.')
+      if (s.claimed_by && s.claimed_by !== me) throw new ApiError(423, 'Someone else is using this printer right now. Please wait until they finish.')
       if (!s.claimed_at) { s.claimed_at = new Date().toISOString(); s.claimed_by = me; save({ ...load(), [token]: s }) }
     }
     return s
@@ -73,7 +73,7 @@ export const mockApi = {
   async uploadDocument(token, file, { onProgress } = {}) {
     activeSession(token)
     const list = docs.get(token) ?? []
-    if (list.length >= LIMITS.maxFiles) throw new ApiError(422, `You can add up to ${LIMITS.maxFiles} files per session.`)
+    if (list.length >= LIMITS.maxFiles) throw new ApiError(422, `You can add up to ${LIMITS.maxFiles} files at a time.`)
     const v = await validateFile(file, list.length)
     if (!v.ok) throw new ApiError(415, v.error)
     for (const p of [25, 55, 80, 100]) { await delay(60); onProgress?.(p) }
@@ -105,7 +105,7 @@ export const mockApi = {
     await delay(120)
     activeSession(token)
     const d = (docs.get(token) ?? []).find((x) => x.id === document_id)
-    if (!d) throw new ApiError(404, 'Document not found in this session.')
+    if (!d) throw new ApiError(404, 'We could not find that file.')
     if (d.status !== 'ready') throw new ApiError(409, 'Document is not ready yet.')
     try { return priceWithEdits(token, d, settings).quote } catch (e) { throw new ApiError(422, e.message) }
   },

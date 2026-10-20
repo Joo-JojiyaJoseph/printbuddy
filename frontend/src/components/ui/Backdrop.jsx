@@ -21,7 +21,7 @@ export default function Backdrop() {
     return () => { window.removeEventListener('pointermove', move); cancelAnimationFrame(raf) }
   }, [])
 
-  const orb = 'pointer-events-none fixed rounded-full blur-[90px] animate-drift'
+  const orb = 'pointer-events-none fixed rounded-full blur-[56px] md:blur-[90px] animate-drift'
   // each object: where it sits, how far the pointer moves it (depth) and when it starts bobbing
   const obj = 'pointer-events-none fixed transition-transform duration-300 ease-out will-change-transform'
   const move = (k) => ({ transform: `translate(calc(var(--px,0) * ${k}px), calc(var(--py,0) * ${k}px))` })

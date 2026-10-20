@@ -38,7 +38,7 @@ test('expired or unknown sessions show an error instead of the app', async () =>
       <Routes><Route path="/s/:token" element={<SessionProvider />}><Route path="upload" element={<Upload />} /></Route></Routes>
     </MemoryRouter>
   )
-  expect(await screen.findByRole('alert')).toHaveTextContent(/couldn't find this session/i)
+  expect(await screen.findByRole('alert')).toHaveTextContent(/couldn't find this page/i)
 })
 
 test('offers photo/media and camera-scan upload alongside the file picker', async () => {

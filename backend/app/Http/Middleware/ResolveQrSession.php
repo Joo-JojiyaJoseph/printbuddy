@@ -21,17 +21,17 @@ class ResolveQrSession
     {
         $session = $this->sessions->findByToken($request->header('X-Session-Token'));
         if ($session === null) {
-            return response()->json(['message' => 'Session not found.'], 401);
+            return response()->json(['message' => 'We could not find this page. Please scan the code on the printer screen again.'], 401);
         }
         if (! $session->isUsable()) {
             if ($session->status === QrSession::ACTIVE && $session->isExpired()) {
                 $session->forceFill(['status' => QrSession::EXPIRED])->save();
             }
 
-            return response()->json(['message' => 'This session has expired.'], 410);
+            return response()->json(['message' => 'This QR code has expired. Please scan the code on the printer screen again.'], 410);
         }
         if ($this->sessions->ownedByOther($session, $request->header('X-Device-Id'))) {
-            return response()->json(['message' => 'This QR code is already being used by another phone. Wait until that session ends, or ask the kiosk to cancel it.'], 423);
+            return response()->json(['message' => 'Someone else is using this printer right now. Please wait until they finish, then scan the new code on the printer screen.'], 423);
         }
         $request->attributes->set('qr_session', $session);
 

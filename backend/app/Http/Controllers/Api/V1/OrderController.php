@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\PrintJob;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PrintSettingsRequest;
 use App\Http\Resources\OrderResource;
@@ -39,7 +40,16 @@ class OrderController extends Controller
 
     public function show(Request $request, string $reference): OrderResource
     {
-        return new OrderResource($this->find($request, $reference)->load(['document', 'latestPayment', 'printJob']));
+        $order = $this->find($request, $reference);
+        // A print that was started and then lost (the PHP process died, the printer dialog hung) would stay "preparing" forever.
+        // After 3 minutes without progress say so, so the customer sees a clear message and staff can use Retry print.
+        PrintJob::query()
+            ->where('print_order_id', $order->id)
+            ->whereIn('status', PrintJob::IN_FLIGHT)
+            ->where('updated_at', '<', now()->subMinutes(3))
+            ->update(['status' => PrintJob::FAILED, 'failure_reason' => 'Printing did not finish in time. Check the printer, then use Retry print.']);
+
+        return new OrderResource($order->load(['document', 'latestPayment', 'printJob']));
     }
 
     public function status(Request $request, string $reference): JsonResponse
@@ -61,7 +71,7 @@ class OrderController extends Controller
 
     private function document(Request $request, string $id): Document
     {
-        return $this->session($request)->documents()->whereKey($id)->firstOr(fn () => abort(404, 'Document not found in this session.'));
+        return $this->session($request)->documents()->whereKey($id)->firstOr(fn () => abort(404, 'We could not find that file.'));
     }
 
     /** Same 404 for "missing" and "someone else's" so references cannot be enumerated. */

@@ -35,7 +35,7 @@ export async function validateFile(file, currentCount = 0) {
   const real = await sniffKind(file)
   if ((real === 'jpg' || real === 'png') && !(ext in EXT_KIND)) ext = real === 'jpg' ? 'jpg' : 'png'
   if (!(ext in EXT_KIND)) return { ok: false, error: `"${file.name}": .${ext || '?'} files are not supported.` }
-  if (currentCount >= LIMITS.maxFiles) return { ok: false, error: `You can add up to ${LIMITS.maxFiles} files per session.` }
+  if (currentCount >= LIMITS.maxFiles) return { ok: false, error: `You can add up to ${LIMITS.maxFiles} files at a time.` }
   if (file.size === 0) return { ok: false, error: `"${file.name}" is empty.` }
   if (file.size > LIMITS.maxBytes) return { ok: false, error: `"${file.name}" is larger than ${LIMITS.maxBytes / 1024 / 1024} MB.` }
   const kind = await sniffKind(file)

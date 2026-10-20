@@ -19,7 +19,7 @@ export default function Modal({ open, onClose, title, children, size = 'sm', clo
   return createPortal(
     <div className="fixed inset-0 z-[100] grid place-items-center bg-[#1f1b3d]/45 p-4 backdrop-blur-md animate-fade" onMouseDown={() => closable && onClose?.()}>
       <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(e) => e.stopPropagation()}
-        className={`relative max-h-[90dvh] w-full overflow-y-auto rounded-[28px] border border-white/70 bg-white/97 p-5 shadow-[0_30px_80px_rgba(31,27,61,.35)] backdrop-blur-2xl outline-none animate-pop ${size === 'lg' ? 'max-w-2xl' : 'max-w-sm'}`}>
+        className={`relative max-h-[90dvh] w-full overflow-y-auto rounded-[28px] border border-white/70 bg-white/97 p-5 shadow-[0_30px_80px_rgba(31,27,61,.35)] backdrop-blur-2xl outline-none animate-pop ${size === 'xl' ? 'max-w-3xl' : size === 'lg' ? 'max-w-2xl' : 'max-w-sm'}`}>
         {closable && (
           <button type="button" onClick={onClose} aria-label="Close" className="absolute right-3 top-3 grid size-10 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--hi)]"><X size={20} aria-hidden="true" /></button>
         )}

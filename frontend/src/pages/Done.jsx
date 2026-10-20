@@ -93,7 +93,7 @@ export default function Done() {
         {order.print?.status === 'sent' && (
           <p className="mb-3 mt-0 flex items-center justify-center gap-1.5 text-center text-xs text-[var(--muted)]">
             <ShieldCheck size={14} aria-hidden="true" />
-            Privacy: your files are erased from this kiosk{order.print.files_erased_at ? ` at ${new Date(order.print.files_erased_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ' shortly after printing'}.
+            Privacy: your files are deleted from our system{order.print.files_erased_at ? ` at ${new Date(order.print.files_erased_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ' shortly after printing'}.
           </p>
         )}
         <div className="md:grid md:grid-cols-2 md:items-start md:gap-4">

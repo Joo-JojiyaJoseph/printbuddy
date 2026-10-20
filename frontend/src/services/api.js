@@ -9,12 +9,19 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 const SLOW_DOWN = 'You are going a little fast. Please wait a few seconds and try again.'
 
 async function http(path, opts = {}, retried = false) {
-  const { token, method = 'GET', body, kiosk = false } = opts
-  const res = await fetch(BASE + path, {
+  const { token, method = 'GET', body, kiosk = false, timeout = 20000 } = opts
+  // Never wait forever on a busy server: give up after `timeout` ms with a clear message.
+  let res
+  try {
+    res = await fetch(BASE + path, {
+    signal: AbortSignal.timeout(timeout),
     method,
     headers: { Accept: 'application/json', ...(body && { 'Content-Type': 'application/json' }), ...(token && { 'X-Session-Token': token, ...(!kiosk && { 'X-Device-Id': deviceId() }) }) },
     body: body && JSON.stringify(body),
-  })
+    })
+  } catch (e) {
+    throw new ApiError(0, e?.name === 'TimeoutError' ? 'The server is taking too long. Please try again.' : 'Network error. Check your connection and try again.')
+  }
   if (res.status === 204) return null
   // Too many requests: the server rejected this one without doing anything, so waiting and retrying once is safe.
   if (res.status === 429 && !retried) {
@@ -27,9 +34,16 @@ async function http(path, opts = {}, retried = false) {
   return data.data ?? data
 }
 
+const inflight = new Set()
+/** Stops every upload that is still running (used when the customer ends the session). */
+export function abortUploads() { inflight.forEach((x) => x.abort()); inflight.clear() }
+
 function upload(path, { token, file, onProgress }) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
+    inflight.add(xhr)
+    xhr.onloadend = () => inflight.delete(xhr)
+    xhr.onabort = () => reject(new ApiError(0, 'Upload cancelled.'))
     xhr.open('POST', BASE + path)
     xhr.setRequestHeader('Accept', 'application/json')
     xhr.setRequestHeader('X-Session-Token', token)
@@ -51,7 +65,7 @@ function upload(path, { token, file, onProgress }) {
 const real = {
   createSession: (kioskId) => http(`/kiosks/${kioskId}/sessions`, { method: 'POST' }),
   getSession: (token, { claim = false } = {}) => http(`/sessions/current${claim ? '?claim=1' : ''}`, { token, kiosk: !claim }),
-  endSession: (token) => http('/sessions/current/end', { token, method: 'POST', kiosk: true }),
+  endSession: (token) => http('/sessions/current/end', { token, method: 'POST', kiosk: true, timeout: 6000 }),
   listDocuments: (token) => http('/documents', { token }),
   uploadDocument: (token, file, { onProgress } = {}) => upload('/documents', { token, file, onProgress }),
   deleteDocument: (token, id) => http(`/documents/${id}`, { token, method: 'DELETE' }),

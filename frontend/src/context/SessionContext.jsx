@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Outlet, useParams } from 'react-router-dom'
-import { api } from '../services/api'
+import { abortUploads, api } from '../services/api'
 import { validateFile, LIMITS } from '../utils/fileValidation'
 import { needsConversion, conversionBlocker } from '../utils/convert/detect'
 import { DEFAULT_SETTINGS } from '../utils/printOptions'
@@ -38,8 +38,14 @@ export default function SessionProvider() {
     return () => { off = true; clearTimeout(timer) }
   }, [token])
 
+  // "End session" works at any moment: it stops uploads and conversions that are running and never waits for a slow server.
+  const endedRef = useRef(false)
   const endSession = useCallback(async () => {
-    try { await api.endSession(token) } catch { /* already over: same result for the customer */ }
+    endedRef.current = true
+    abortUploads()
+    setUploads([])
+    const done = api.endSession(token).catch(() => { /* already over, or the server is busy: the customer is out either way */ })
+    await Promise.race([done, new Promise((r) => setTimeout(r, 2500))])
     setState({ status: 'ended' })
   }, [token])
 
@@ -64,6 +70,7 @@ export default function SessionProvider() {
   const upload = useCallback(async (files) => {
     let count = docs.length + uploads.filter((u) => !u.error).length
     for (const file of files) {
+      if (endedRef.current) return
       const tempId = uid()
       const patch = (p) => setUploads((u) => u.map((x) => (x.tempId === tempId ? { ...x, ...p } : x)))
       setUploads((u) => [...u, { tempId, name: file.name, progress: 0 }])
@@ -78,14 +85,17 @@ export default function SessionProvider() {
           patch({ note: 'Preparing your document…', progress: 0 })
           const { convertToPdf } = await import('../utils/convert')
           toSend = await convertToPdf(file, { onProgress: (f) => patch({ progress: Math.round(f * 100) }) })
+          if (endedRef.current) return
           const check = await validateFile(toSend, count - 1)
           if (!check.ok) throw new Error(check.error)
           patch({ note: null, progress: 0 })
         }
         await api.uploadDocument(token, toSend, { onProgress: (progress) => patch({ progress }) })
+        if (endedRef.current) return
         setUploads((u) => u.filter((x) => x.tempId !== tempId))
         await refresh()
       } catch (e) {
+        if (endedRef.current) return
         count -= 1
         patch({ error: e.message })
       }
@@ -130,7 +140,7 @@ export default function SessionProvider() {
         <CustomerLayout step={0} title="Taprint">
           <Card className="mt-8 text-center" role="status">
             <h1 className="m-0 text-xl font-bold">Session ended</h1>
-            <p className="mt-2 text-[var(--muted)]">Your files have been removed. To print again, scan the new QR code on the kiosk.</p>
+            <p className="mt-2 text-[var(--muted)]">Your files have been removed. To print again, scan the new QR code on the printer screen.</p>
           </Card>
         </CustomerLayout>
       )
@@ -140,17 +150,17 @@ export default function SessionProvider() {
         <CustomerLayout step={0} title="Taprint">
           <Card className="mt-8 text-center" role="alert">
             <h1 className="m-0 text-xl font-bold">This QR code is in use</h1>
-            <p className="mt-2 text-[var(--muted)]">Another phone is already connected to this kiosk. Please wait until that person finishes, or ask them to cancel. The kiosk will then show a new QR code for you.</p>
+            <p className="mt-2 text-[var(--muted)]">Someone else is using this printer right now. Please wait until they finish, then scan the new QR code on the printer screen.</p>
           </Card>
         </CustomerLayout>
       )
     }
-    const msg = state.status === 'expired' ? 'This session has expired.' : state.status === 'missing' ? "We couldn't find this session." : state.message
+    const msg = state.status === 'expired' ? 'This QR code has expired. Please scan the code on the printer screen again.' : state.status === 'missing' ? "We couldn't find this page. Please scan the code on the printer screen again." : state.message
     return (
       <CustomerLayout step={0} title="Taprint">
         <Card className="mt-8 text-center" role="alert">
           <h1 className="m-0 text-xl font-bold">{msg}</h1>
-          <p className="mt-2 text-[var(--muted)]">Scan the QR code on the kiosk again to start a new session.</p>
+          <p className="mt-2 text-[var(--muted)]">Scan the QR code on the printer screen to start again.</p>
         </Card>
       </CustomerLayout>
     )

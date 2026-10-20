@@ -1,14 +1,20 @@
 import { Link } from 'react-router-dom'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, CircleDollarSign, ClipboardList, CreditCard, Database, FileWarning, Landmark, QrCode, ScanSearch } from 'lucide-react'
 import { adminApi } from '../adminApi'
 import { formatBytes, formatINR } from '../../utils/format'
 import { Badge, Loading, Notice, PageHead, Panel, Table, dt, useLoad } from '../ui'
 
-function Stat({ label, value, sub, tone }) {
+const TINTS = { violet: 'from-[#9a80ff] to-[#5a3fd0]', green: 'from-[#6ee7b7] to-[#0f9d74]', blue: 'from-[#7aa7ff] to-[#3f6fe0]', pink: 'from-[#ff9fbb] to-[#ec4a78]', amber: 'from-[#ffd36e] to-[#e59a0a]' }
+function Stat({ label, value, sub, tone, icon: Icon, tint = 'violet', i = 0 }) {
+  const bad = tone === 'bad'
   return (
-    <div className="min-w-0 rounded-2xl border border-[var(--border)] bg-white p-4">
-      <p className="m-0 text-xs font-semibold text-[var(--muted)]">{label}</p>
-      <p className={`m-0 mt-1 text-2xl font-bold tracking-tight [overflow-wrap:anywhere] ${tone === 'bad' ? 'text-red-700' : ''}`}>{value}</p>
+    <div className="group relative min-w-0 animate-rise overflow-hidden rounded-2xl border border-white bg-white p-4 shadow-[0_1px_2px_rgba(31,27,61,.05),0_10px_26px_-12px_rgba(74,50,184,.25),0_0_0_1px_rgba(124,92,252,.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_34px_-14px_rgba(74,50,184,.38),0_0_0_1px_rgba(124,92,252,.14)]" style={{ animationDelay: `${i * 0.04}s` }}>
+      <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${bad ? 'from-[#ff8fa3] to-[#d9344a]' : TINTS[tint]}`} />
+      <div className="flex items-start justify-between gap-2">
+        <p className="m-0 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
+        {Icon && <span className={`tile3d grid size-9 flex-none place-items-center rounded-xl bg-gradient-to-br text-white ${bad ? 'from-[#ff8fa3] to-[#d9344a]' : TINTS[tint]}`}><Icon size={17} aria-hidden="true" /></span>}
+      </div>
+      <p className={`m-0 mt-2 text-[1.625rem] font-extrabold tracking-tight [overflow-wrap:anywhere] ${bad ? 'text-red-700' : ''}`}>{value}</p>
       {sub && <p className="m-0 mt-0.5 text-xs text-[var(--muted)]">{sub}</p>}
     </div>
   )
@@ -35,14 +41,14 @@ export default function Dashboard() {
         <div className="mb-4 grid gap-2">{alerts.map((a, i) => <Notice key={i} tone={i === 0 && d.print_failed > 0 ? 'bad' : 'warn'}>{a}</Notice>)}</div>
       )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Revenue today" value={formatINR(d.revenue_today_paise)} sub={`${d.paid_today} paid order(s)`} />
-        <Stat label="Orders today" value={d.orders_today} />
-        <Stat label="Revenue, all time" value={formatINR(d.revenue_total_paise)} />
-        <Stat label="Active QR sessions" value={d.active_sessions} />
-        <Stat label="Payments pending" value={d.pending_payments} />
-        <Stat label="Payments to review" value={d.payments_needing_review} tone={d.payments_needing_review ? 'bad' : undefined} />
-        <Stat label="Print failures" value={d.print_failed ?? 0} tone={d.print_failed ? 'bad' : undefined} />
-        <Stat label="Files on disk" value={d.documents_on_disk} sub={formatBytes(d.storage_bytes)} />
+        <Stat i={0} icon={CircleDollarSign} tint="green" label="Revenue today" value={formatINR(d.revenue_today_paise)} sub={`${d.paid_today} paid order(s)`} />
+        <Stat i={1} icon={ClipboardList} tint="violet" label="Orders today" value={d.orders_today} />
+        <Stat i={2} icon={Landmark} tint="blue" label="Revenue, all time" value={formatINR(d.revenue_total_paise)} />
+        <Stat i={3} icon={QrCode} tint="violet" label="Active QR sessions" value={d.active_sessions} />
+        <Stat i={4} icon={CreditCard} tint="amber" label="Payments pending" value={d.pending_payments} />
+        <Stat i={5} icon={ScanSearch} tint="amber" label="Payments to review" value={d.payments_needing_review} tone={d.payments_needing_review ? 'bad' : undefined} />
+        <Stat i={6} icon={FileWarning} tint="pink" label="Print failures" value={d.print_failed ?? 0} tone={d.print_failed ? 'bad' : undefined} />
+        <Stat i={7} icon={Database} tint="blue" label="Files on disk" value={d.documents_on_disk} sub={formatBytes(d.storage_bytes)} />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -63,7 +69,7 @@ export default function Dashboard() {
               {by.map(([s, n]) => (
                 <li key={s}>
                   <div className="mb-1 flex justify-between text-xs"><span className="capitalize">{s.replace(/_/g, ' ')}</span><b>{n}</b></div>
-                  <div className="h-2 rounded-full bg-[var(--hi)]"><div className="h-2 rounded-full bg-[var(--color-accent)]" style={{ width: `${(n / max) * 100}%` }} /></div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-[#ece7fb] shadow-[inset_0_1px_2px_rgba(74,50,184,.12)]"><div className="h-2.5 rounded-full bg-gradient-to-r from-[#9a80ff] to-[#6246e6] shadow-[0_0_8px_rgba(124,92,252,.5)] transition-[width] duration-700" style={{ width: `${(n / max) * 100}%` }} /></div>
                 </li>
               ))}
             </ul>

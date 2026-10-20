@@ -55,7 +55,7 @@ class DocumentService
         }
         $count = $session->documents()->count();
         if ($count >= $this->settings->int('max_files')) {
-            throw new ApiProblem(sprintf('You can add up to %d files per session.', $this->settings->int('max_files')), 422);
+            throw new ApiProblem(sprintf('You can add up to %d files at a time.', $this->settings->int('max_files')), 422);
         }
 
         $type = $this->detector->inspect($file->getRealPath(), $file->getClientOriginalName(), (array) $this->settings->get('allowed_types'));
@@ -109,7 +109,7 @@ class DocumentService
             throw new ApiProblem('Wait until every selected file has finished preparing.', 409);
         }
         if ($session->documents()->count() >= $this->settings->int('max_files')) {
-            throw new ApiProblem(sprintf('You can add up to %d files per session. Remove one first.', $this->settings->int('max_files')), 422);
+            throw new ApiProblem(sprintf('You can add up to %d files at a time. Remove one first.', $this->settings->int('max_files')), 422);
         }
         $items = [];
         $pages = 0;

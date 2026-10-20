@@ -14,8 +14,10 @@ export default function Login({ onSignIn }) {
     try { await onSignIn(email.trim(), password) } catch (x) { setErr(x.message || 'Could not sign in') } finally { setBusy(false) }
   }
   return (
-    <div className="grid min-h-dvh place-items-center bg-[#f6f3ff] p-4">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[0_12px_40px_rgba(74,50,184,.12)]">
+    <div className="relative grid min-h-dvh place-items-center overflow-hidden bg-[radial-gradient(50rem_30rem_at_85%_-10%,#d9ceff_0,transparent_60%),radial-gradient(40rem_30rem_at_0%_100%,#ffd5e2_0,transparent_60%),#f6f3ff] p-4">
+      <div aria-hidden="true" className="orb3d pointer-events-none absolute -left-8 top-[18%] hidden size-28 animate-bob rounded-full opacity-80 md:block" />
+      <div aria-hidden="true" className="pill3d pointer-events-none absolute bottom-[14%] right-[8%] hidden h-9 w-28 animate-[tilt-float_6s_ease-in-out_infinite] rounded-full [--r:-24deg] md:block" />
+      <form onSubmit={submit} className="clay animate-card-in relative w-full max-w-sm rounded-[28px] p-7">
         <Logo size={38} full />
         <h1 className="m-0 mt-5 text-xl font-bold">Admin sign in</h1>
         <p className="m-0 mt-1 text-sm text-[var(--muted)]">Staff only.</p>

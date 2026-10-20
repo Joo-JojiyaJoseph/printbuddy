@@ -1,5 +1,6 @@
 import { CloudUpload, Lock, ReceiptText, Rocket, SlidersHorizontal, Wallet } from 'lucide-react'
 import Backdrop from '../components/ui/Backdrop'
+import HelpButton from '../components/HelpGuide'
 import Logo from '../components/ui/Logo'
 import StepProgress from '../components/ui/StepProgress'
 import HeroPanel from '../components/HeroPanel'
@@ -24,7 +25,8 @@ export default function CustomerLayout({ step = 0, title, hint, children, footer
           <span className="ml-2 hidden border-l border-[var(--border)] pl-3 text-base font-semibold text-[var(--muted)] md:inline">Tap In. Print Out.</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full glass px-3 py-1.5 text-sm font-bold text-[var(--text)] shadow-sm"><Lock size={14} aria-hidden="true" className="text-mint" /><span className="hidden sm:inline">Secure session</span><span className="sm:hidden">Secure</span></span>
+          <span className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full glass px-3 py-1.5 text-sm font-bold text-[var(--text)] shadow-sm sm:inline-flex"><Lock size={14} aria-hidden="true" className="text-mint" />Secure</span>
+          <HelpButton />
           <CancelSession />
         </div>
       </header>

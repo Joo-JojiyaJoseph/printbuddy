@@ -90,7 +90,7 @@ class DocumentController extends Controller
     {
         $doc = Document::query()->whereKey($document)->whereNull('deleted_at')->where('status', Document::READY)->first();
         abort_if($doc === null || $doc->qr_session_id !== $request->query('s'), 404, 'Not found.');
-        abort_unless(QrSession::query()->whereKey($doc->qr_session_id)->usable()->exists(), 410, 'This session has expired.');
+        abort_unless(QrSession::query()->whereKey($doc->qr_session_id)->usable()->exists(), 410, 'This QR code has expired. Please scan the code on the printer screen again.');
 
         $disk = $this->documents->disk();
         $path = $doc->preview_path ?: $doc->storage_path;
@@ -114,6 +114,6 @@ class DocumentController extends Controller
     /** Documents are only ever resolved THROUGH the current session (no cross-session lookups). */
     private function find(Request $request, string $id): Document
     {
-        return $this->session($request)->documents()->whereKey($id)->firstOr(fn () => abort(404, 'Document not found in this session.'));
+        return $this->session($request)->documents()->whereKey($id)->firstOr(fn () => abort(404, 'We could not find that file.'));
     }
 }

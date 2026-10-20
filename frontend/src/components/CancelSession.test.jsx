@@ -12,23 +12,23 @@ test('the customer can end the session after confirming, and the code stops work
       <Routes><Route path="/s/:token" element={<SessionProvider />}><Route path="upload" element={<Upload />} /></Route></Routes>
     </MemoryRouter>
   )
-  fireEvent.click(await screen.findByRole('button', { name: 'End this session' }))
-  expect(screen.getByRole('dialog', { name: /end this session/i })).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: 'Keep going' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Leave and delete my files' }))
+  expect(screen.getByRole('dialog', { name: /leave and delete my files/i })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Stay' }))
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument() // cancelled: nothing happened
-  fireEvent.click(screen.getByRole('button', { name: 'End this session' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Yes, end it' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Leave and delete my files' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Yes, leave' }))
   expect(await screen.findByRole('heading', { name: 'Session ended' })).toBeInTheDocument()
   await expect(mockApi.getSession(s.token)).rejects.toMatchObject({ status: 410 })
 })
 
 test('the kiosk hides the QR code while a phone is connected and can cancel that session', async () => {
   render(<MemoryRouter><Kiosk /></MemoryRouter>)
-  expect(await screen.findByTitle('Session QR code')).toBeInTheDocument()
+  expect(await screen.findByTitle('QR code to scan')).toBeInTheDocument()
   const tok = Object.keys(JSON.parse(localStorage.getItem('pb_mock_sessions'))).pop()
   await mockApi.getSession(tok, { claim: true }) // a phone scans
-  expect(await screen.findByText('A customer is using this kiosk', {}, { timeout: 4000 })).toBeInTheDocument()
-  expect(screen.queryByTitle('Session QR code')).not.toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel this session' }))
-  expect(await screen.findByTitle('Session QR code', {}, { timeout: 3000 })).toBeInTheDocument() // fresh code
+  expect(await screen.findByText('Someone is using this printer', {}, { timeout: 4000 })).toBeInTheDocument()
+  expect(screen.queryByTitle('QR code to scan')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Stop and show a new code' }))
+  expect(await screen.findByTitle('QR code to scan', {}, { timeout: 3000 })).toBeInTheDocument() // fresh code
 }, 12000)
