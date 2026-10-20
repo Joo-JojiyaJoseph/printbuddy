@@ -37,7 +37,7 @@ export async function payWithCheckout(c) {
       currency: c.currency,
       name: c.name,
       description: c.description,
-      theme: { color: '#0F6B73' },
+      theme: { color: '#6a4be0' },
       handler: (r) => resolve({ provider_order_id: r.razorpay_order_id, provider_payment_id: r.razorpay_payment_id, signature: r.razorpay_signature }),
       modal: { ondismiss: () => reject(new Error('closed')) },
     })

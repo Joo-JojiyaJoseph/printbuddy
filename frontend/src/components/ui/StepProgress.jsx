@@ -15,8 +15,8 @@ export default function StepProgress({ current = 0 }) {
         {PHASES.map((s, i) => (
           <li key={s} className={`flex items-start ${i < PHASES.length - 1 ? 'flex-1' : ''}`}>
             <span className="flex w-[4.5rem] flex-none flex-col items-center gap-1.5">
-              <span className={`grid size-11 place-items-center rounded-full text-base font-bold transition-all duration-500 ${
-                i < phase ? 'bg-mint text-white' : i === phase ? 'scale-110 bg-gradient-to-br from-accent to-accent-2 text-white shadow-[0_8px_20px_rgba(10,74,82,.45)]' : 'bg-[var(--hi)] text-[var(--muted)]'}`}>
+              <span className={`pebble grid size-11 place-items-center rounded-full text-base font-bold transition-all duration-500 ${
+                i < phase ? 'bg-gradient-to-b from-[#6ee7b7] to-[#0f9d74] text-white' : i === phase ? 'animate-pulse-ring scale-110 bg-gradient-to-b from-[#9a80ff] to-[#6a4be0] text-white' : 'bg-gradient-to-b from-white to-[#e9e3fb] text-[var(--muted)]'}`}>
                 {i < phase ? <Check size={22} strokeWidth={3} /> : i + 1}
               </span>
               <span className={`text-sm font-bold ${i === phase ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>{s}</span>

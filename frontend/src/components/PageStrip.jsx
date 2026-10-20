@@ -27,7 +27,7 @@ export default function PageStrip({ pdf, ratio, state, perSheet = 1 }) {
           const together = perSheet > 1 && Math.floor(i / perSheet) === Math.floor(cur / perSheet) // pages that share the sheet on show
           return (
             <button key={i} type="button" role="option" aria-selected={i === cur} aria-label={label(i)} onClick={() => setSel(i)}
-              className={`w-[3.375rem] flex-none rounded-[10px] border-2 p-0.5 text-center text-xs text-[var(--muted)] transition-all ${i === cur ? '-translate-y-1 border-accent bg-[var(--card)] shadow-[0_8px_18px_rgba(14,124,134,.3)]' : together ? 'border-accent/40' : 'border-transparent'}`}>
+              className={`w-[3.375rem] flex-none rounded-[10px] border-2 p-0.5 text-center text-xs text-[var(--muted)] transition-all ${i === cur ? '-translate-y-1 border-accent bg-[var(--card)] shadow-[0_8px_18px_rgba(124,92,252,.3)]' : together ? 'border-accent/40' : 'border-transparent'}`}>
               <PageSheet pdf={pdf} item={p} ratio={ratio} renderWidth={110} lazy label="" />
               {i + 1}
             </button>

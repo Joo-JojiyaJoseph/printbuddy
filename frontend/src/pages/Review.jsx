@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { FileText } from 'lucide-react'
 import CustomerLayout from '../layouts/CustomerLayout'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
-import QuoteCard from '../components/QuoteCard'
+import { PriceSlip, SettingsSlip } from '../components/OrderTicket'
 import { useSession } from '../context/SessionContext'
 import { useQuote } from '../hooks/useQuote'
-import { describeSettings } from '../utils/printOptions'
 import { api } from '../services/api'
 import { formatINR } from '../utils/format'
 import { outputPageCount } from '../utils/pagePlan'
@@ -40,17 +38,8 @@ export default function Review() {
         <Button variant="pay" loading={busy} disabled={!quote || loading} onClick={pay}>{quote ? `Pay ${formatINR(quote.total_paise)}` : 'Pay'}</Button>
       </>}>
       <div className="stagger">
-        <div className="mb-3 rounded-[22px] border border-[var(--border)] bg-white p-3.5 shadow-[0_6px_20px_rgba(10,74,82,.08)]">
-          <p className="m-0 flex items-center gap-2.5 font-bold"><span className="grid size-10 flex-none place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-2 text-white"><FileText size={20} aria-hidden="true" /></span><span className="min-w-0 truncate">{doc.original_name}</span></p>
-          <dl className="m-0 mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {describeSettings(settings).map(([k, v]) => (
-              <div key={k} className="rounded-2xl bg-[var(--hi)] px-3 py-2">
-                <dt className="text-sm font-semibold text-[var(--muted)]">{k}</dt><dd className="m-0 text-base font-bold leading-snug">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      <QuoteCard quote={quote} loading={loading} error={error} />
+        <SettingsSlip name={doc.original_name} settings={settings} />
+        <PriceSlip quote={quote} loading={loading} error={error} />
       </div>
       {orderError && <Card role="alert" className="mt-3 text-danger">{orderError}</Card>}
     </CustomerLayout>

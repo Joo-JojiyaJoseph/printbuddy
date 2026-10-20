@@ -31,12 +31,12 @@ export default function CustomerLayout({ step = 0, title, hint, children, footer
       <div className="relative z-10 mx-auto flex w-full max-w-[77.5rem] flex-1 px-0 pb-0 sm:px-4 sm:pb-6 md:px-8">
         <div className={`flex w-full flex-1 ${hero ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,35rem)] lg:items-center lg:justify-items-center lg:gap-10 lg:rounded-[34px] lg:glass lg:p-10 lg:shadow-[var(--shadow)] lg:min-h-[calc(100dvh-8rem)]' : 'justify-center'}`}>
           {hero && <HeroPanel />}
-          <main className={`flex min-h-[calc(100dvh-4rem)] w-full flex-col border-white/70 bg-white/85 backdrop-blur-xl sm:min-h-[min(calc(100dvh-7rem),40rem)] sm:rounded-[28px] sm:border sm:shadow-[var(--shadow)] ${cardW} ${hero ? 'lg:min-h-[min(calc(100dvh-15rem),40rem)] lg:max-w-[35rem] lg:justify-self-end' : ''}`}>
-            <div className="rounded-t-[28px] bg-gradient-to-b from-[#e8f5f5] to-white px-4 pb-1 pt-4 md:px-8 md:pt-6">
+          <main className={`animate-card-in flex min-h-[calc(100dvh-4rem)] w-full flex-col border-white/70 bg-white/85 backdrop-blur-xl sm:min-h-[min(calc(100dvh-7rem),40rem)] sm:rounded-[28px] sm:border sm:shadow-[var(--shadow)] ${cardW} ${hero ? 'lg:min-h-[min(calc(100dvh-15rem),40rem)] lg:max-w-[35rem] lg:justify-self-end' : ''}`}>
+            <div className="rounded-t-[28px] bg-gradient-to-b from-[#efeafd] to-white px-4 pb-1 pt-4 md:px-8 md:pt-6">
               <StepProgress current={step} />
               {title && title !== 'Taprint' && (
                 <div className="mt-4 flex items-center gap-3">
-                  <span className="grid size-12 flex-none place-items-center rounded-2xl bg-gradient-to-br from-accent to-accent-2 text-white shadow-[0_8px_20px_rgba(10,74,82,.3)]"><Icon size={24} aria-hidden="true" /></span>
+                  <span className="tile3d grid size-12 flex-none place-items-center rounded-2xl bg-gradient-to-br from-accent to-accent-2 text-white"><Icon size={24} aria-hidden="true" /></span>
                   <div className="min-w-0">
                     <h2 className="m-0 text-xl font-extrabold leading-tight tracking-tight md:text-2xl">{title}</h2>
                     {hint && <p className="m-0 mt-0.5 text-base leading-snug text-[var(--muted)]">{hint}</p>}

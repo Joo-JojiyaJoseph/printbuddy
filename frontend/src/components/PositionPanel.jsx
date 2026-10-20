@@ -64,7 +64,7 @@ export default function PositionPanel({ plan, cur, duplex, apply }) {
       <div role="radiogroup" aria-label={`Position for ${scopeLabel}`} className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
         {ALIGN_OPTIONS.map((o) => (
           <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => choose(o.value)}
-            className={`flex min-h-[2.875rem] items-center gap-2 rounded-[14px] border-[1.5px] px-2 text-left text-xs font-bold ${value === o.value ? 'border-accent bg-[#e3f3f3]' : 'border-[var(--border)] bg-white'}`}>
+            className={`flex min-h-[2.875rem] items-center gap-2 rounded-[14px] border-[1.5px] px-2 text-left text-xs font-bold ${value === o.value ? 'border-accent bg-[#ece6ff]' : 'border-[var(--border)] bg-white'}`}>
             <Glyph align={o.value} />{o.label}
           </button>
         ))}

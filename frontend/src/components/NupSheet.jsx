@@ -30,7 +30,7 @@ export default function NupSheet({ pdf, items, perSheet, ratio, paperMm, orienta
   return (
     <div role="img" aria-label={label} data-cells={cols * rows}
       style={{ aspectRatio: ratio, padding: pad, filter: grayscale ? 'grayscale(1)' : undefined }}
-      className="relative w-full overflow-hidden rounded-[5px] bg-white shadow-[0_10px_30px_rgba(16,36,43,.35)]">
+      className="relative w-full overflow-hidden rounded-[5px] bg-white shadow-[0_10px_30px_rgba(31,27,61,.35)]">
       <div className="grid h-full w-full" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`, gap: pad }}>
         {Array.from({ length: cols * rows }, (_, i) => <Cell key={i} pdf={pdf} item={items[i]} renderWidth={renderWidth} />)}
       </div>

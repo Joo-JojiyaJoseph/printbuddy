@@ -48,7 +48,7 @@ function Shell({ user, onLogout }) {
     </nav>
   )
   return (
-    <div className="min-h-dvh bg-[#F3F8F8] lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
+    <div className="min-h-dvh bg-[#f6f3ff] lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-dvh flex-col gap-4 overflow-y-auto border-r border-[var(--border)] bg-white p-4 lg:flex">
         <Logo size={34} full />
         {nav}
@@ -66,7 +66,7 @@ function Shell({ user, onLogout }) {
         </header>
         {open && (
           <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-            <button type="button" aria-label="Close menu" className="absolute inset-0 bg-[#10242B]/45" onClick={() => setOpen(false)} />
+            <button type="button" aria-label="Close menu" className="absolute inset-0 bg-[#1f1b3d]/45" onClick={() => setOpen(false)} />
             <div className="absolute inset-y-0 right-0 flex w-[min(18rem,85vw)] flex-col gap-4 overflow-y-auto bg-white p-4 shadow-2xl">
               <div className="flex items-center justify-between"><span className="text-sm font-bold">{user.name}</span><button type="button" aria-label="Close menu" onClick={() => setOpen(false)} className="grid size-9 place-items-center rounded-lg hover:bg-[var(--hi)]"><X size={18} /></button></div>
               {nav}

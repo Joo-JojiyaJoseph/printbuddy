@@ -27,7 +27,7 @@ export default function PerSheetPicker({ value, onChange, orientation = 'portrai
           <button key={n} type="button" role="radio" aria-checked={on} aria-label={n === 1 ? '1 page per sheet' : `${n} pages per sheet`}
             onClick={() => onChange(n)}
             className={`flex min-h-[3.875rem] flex-col items-center justify-center gap-1 rounded-[14px] border-[1.5px] px-1 py-1.5 text-xs font-bold transition-all duration-200 active:scale-95 ${
-              on ? 'border-accent-2 bg-[#dcf0f1] text-primary shadow-[0_4px_14px_rgba(10,74,82,.18)]' : 'border-[var(--border)] bg-white text-[var(--muted)] hover:-translate-y-0.5 hover:shadow-sm'}`}>
+              on ? 'border-accent-2 bg-[#e6dfff] text-primary shadow-[0_4px_14px_rgba(74,50,184,.18)]' : 'border-[var(--border)] bg-white text-[var(--muted)] hover:-translate-y-0.5 hover:shadow-sm'}`}>
             <GridIcon n={n} landscape={n === 1 ? false : landscape} />
             <span>{n}</span>
           </button>

@@ -2,20 +2,20 @@
 
 /* Taprint theme: teal brand, coral for the money moments (Pay), ink text, white cards. Deep teal keeps white text readable. */
 @theme {
-  --color-accent: #0E7C86;      /* brand teal */
-  --color-accent-2: #0A4A52;    /* deep teal (buttons, text on white) */
-  --color-primary: #0A4A52;
+  --color-accent: #7c5cfc;      /* brand teal */
+  --color-accent-2: #4a32b8;    /* deep teal (buttons, text on white) */
+  --color-primary: #4a32b8;
   --color-mint: #12a679;
-  --color-pink: #FF6B4A;
-  --color-coral: #FF6B4A;
-  --color-coral-deep: #D6401F;
+  --color-pink: #ff7a9c;
+  --color-coral: #ff7a9c;
+  --color-coral-deep: #d93a66;
   --color-danger: #d9344a;
   --color-amber: #d97706;
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   --radius-card: 22px;
   /* Professional type scale: 16px base, 14px body, 12px captions. Headings 20-28px. */
-  --text-xs: 0.8125rem;
-  --text-sm: 0.9375rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
   --radius-btn: 999px;
   --animate-enter: enter .45s cubic-bezier(.2,.9,.2,1) both;
   --animate-float: float 4s ease-in-out infinite;
@@ -29,6 +29,8 @@
   --animate-gradient: gradient 6s ease infinite;
   --animate-draw: draw .6s .15s ease-out both;
   --animate-fall: fall 2.6s ease-in both;
+  --animate-card-in: card-in .8s cubic-bezier(.2,.9,.2,1) both;
+  --animate-spin-slow: spin 14s linear infinite;
   --animate-feed: feed 2.4s cubic-bezier(.4,0,.2,1) infinite;
   --animate-bob: bob 2.2s ease-in-out infinite;
   --animate-ripple: ripple 1.8s ease-out infinite;
@@ -36,16 +38,16 @@
 
 /* Light, airy theme: white cards on a pastel indigo / sky / lilac wash. Text is deep navy for strong contrast. */
 :root {
-  --bg1: #eef8f8; --bg2: #f6fbfb;
-  --card: #ffffff; --border: #d6e8e9;
-  --text: #10242B; --muted: #4C6469; --hi: #e8f5f5;
-  --shadow: 0 18px 50px rgba(10,74,82, .14);
+  --bg1: #f3efff; --bg2: #faf8ff;
+  --card: #ffffff; --border: #e2dcf7;
+  --text: #1f1b3d; --muted: #5b5880; --hi: #efeafd;
+  --shadow: 0 2px 4px rgba(74,50,184,.06), 0 24px 48px -12px rgba(74,50,184,.22), 0 60px 90px -40px rgba(74,50,184,.25);
 }
 
 /* Big screens: everything is rem-based. The root size and the content width grow smoothly with the screen from about 1600px up
    (17px at 1920, 20px at 2560, 26px at 4K), so text, buttons and cards scale together and nothing floats in empty space. */
-html { font-size: max(106.25%, calc(17px + (100vw - 1600px) * 0.0045)); }                     /* phones: 17px */
-@media (min-width: 768px) { html { font-size: max(112.5%, calc(18px + (100vw - 1600px) * 0.0045)); } } /* tablets and up: 18px */
+html { font-size: max(100%, calc(16px + (100vw - 1600px) * 0.0045)); }                     /* phones: 16px */
+@media (min-width: 768px) { html { font-size: max(100%, calc(16px + (100vw - 1600px) * 0.0045)); } } /* tablets and up: 16px */
 html.is-admin { font-size: max(100%, calc(16px + (100vw - 1600px) * 0.0045)); }                 /* the staff panel keeps its compact size */
 :root { --shell: min(max(77.5rem, 68vw), 130rem); }
 html { overflow-x: clip; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -56,7 +58,7 @@ html, body, #root { min-height: 100%; }
 body { overflow-x: clip; }
 body {
   margin: 0; color: var(--text); font-family: var(--font-sans);
-  background: radial-gradient(1200px 600px at 100% 0%, #d3eff0 0%, transparent 60%), radial-gradient(900px 600px at 0% 100%, #fdece6 0%, transparent 60%), linear-gradient(160deg, var(--bg1), var(--bg2)) fixed;
+  background: radial-gradient(1200px 600px at 100% 0%, #e0d6ff 0%, transparent 60%), radial-gradient(900px 600px at 0% 100%, #fdeaf2 0%, transparent 60%), linear-gradient(160deg, var(--bg1), var(--bg2)) fixed;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -72,10 +74,12 @@ body {
 @keyframes enter { from { opacity: 0; transform: translateY(18px) scale(.98); } }
 @keyframes float { 50% { transform: translateY(-14px) rotate(3deg); } }
 @keyframes drift { to { transform: translate(7%, 9%) scale(1.15); } }
+@keyframes card-in { from { opacity: 0; transform: perspective(1200px) translateY(28px) rotateX(9deg) scale(.97); } to { opacity: 1; transform: perspective(1200px) translateY(0) rotateX(0) scale(1); } }
+@keyframes tilt-float { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-14px) rotate(calc(var(--r,0deg) + 4deg)); } }
 @keyframes feed { 0% { transform: translateY(0); } 55% { transform: translateY(var(--feed, 30px)); } 100% { transform: translateY(var(--feed, 30px)); } }
 @keyframes bob { 50% { transform: translateY(-6px); } }
 @keyframes ripple { from { transform: scale(.6); opacity: .5; } to { transform: scale(1.6); opacity: 0; } }
-@keyframes pulse-ring { 50% { box-shadow: 0 0 0 14px rgba(10,74,82,.18), 0 20px 50px rgba(10,74,82,.2); } }
+@keyframes pulse-ring { 50% { box-shadow: 0 0 0 14px rgba(74,50,184,.18), 0 20px 50px rgba(74,50,184,.2); } }
 
 :focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
 
@@ -90,3 +94,41 @@ body {
 .stagger > * { animation: rise .45s cubic-bezier(.2,.9,.2,1) both; }
 .stagger > *:nth-child(2) { animation-delay: .06s; } .stagger > *:nth-child(3) { animation-delay: .12s; }
 .stagger > *:nth-child(4) { animation-delay: .18s; } .stagger > *:nth-child(n+5) { animation-delay: .24s; }
+
+/* ---------- 3D "clay" look: soft glossy objects with a lit top edge, a shaded underside and layered shadows ---------- */
+.clay { background: linear-gradient(150deg, #ffffff 0%, #f4f0ff 100%); border: 1px solid rgba(255,255,255,.95);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.95), inset 0 -10px 20px rgba(124,92,252,.07), 0 2px 4px rgba(74,50,184,.06), 0 16px 32px -6px rgba(74,50,184,.16), 0 36px 60px -28px rgba(74,50,184,.22); }
+.tile3d { box-shadow: inset 0 2px 1px rgba(255,255,255,.55), inset 0 -4px 8px rgba(0,0,0,.14), 0 10px 18px -4px rgba(74,50,184,.4); }
+.pebble { box-shadow: inset 0 2px 1px rgba(255,255,255,.6), inset 0 -3px 6px rgba(0,0,0,.12), 0 6px 12px -2px rgba(74,50,184,.35); }
+/* Buttons stand proud of the page and press down when tapped. */
+@layer components { .b3d { --edge: #4a32b8; --glow: rgba(74,50,184,.35); } }
+.b3d {
+  box-shadow: 0 5px 0 var(--edge), 0 14px 22px -2px var(--glow), inset 0 2px 1px rgba(255,255,255,.4);
+  transition: transform .12s ease, box-shadow .12s ease; }
+.b3d:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 7px 0 var(--edge), 0 20px 28px -2px var(--glow), inset 0 2px 1px rgba(255,255,255,.4); }
+.b3d:not(:disabled):active { transform: translateY(4px); box-shadow: 0 1px 0 var(--edge), 0 5px 10px -2px var(--glow), inset 0 2px 1px rgba(255,255,255,.3); }
+.b3d:disabled { box-shadow: 0 3px 0 var(--edge); }
+/* Floating 3D objects behind the page (decorative). */
+.orb3d { background: radial-gradient(circle at 30% 24%, #fff 0 7%, rgba(255,255,255,.55) 8% 16%, transparent 17%), radial-gradient(circle at 35% 30%, #cbbcff 0%, #8b6dff 55%, #4a32b8 100%);
+  box-shadow: inset -10px -14px 24px rgba(40,20,120,.35), 0 30px 40px -14px rgba(74,50,184,.4); }
+.cube3d { background: linear-gradient(145deg, #ffffff 0%, #d9ceff 60%, #b3a0f7 100%); box-shadow: inset 0 3px 2px rgba(255,255,255,.9), inset -6px -10px 18px rgba(74,50,184,.25), 0 26px 36px -14px rgba(74,50,184,.4); }
+.pill3d { background: linear-gradient(180deg, #ffb3c8 0%, #ff7a9c 100%); box-shadow: inset 0 3px 2px rgba(255,255,255,.7), inset 0 -6px 10px rgba(180,30,80,.25), 0 18px 26px -10px rgba(217,58,102,.5); }
+.sheet3d { background: #fff; border: 1px solid #e2dcf7; box-shadow: 0 22px 34px -14px rgba(74,50,184,.35); }
+
+/* ---------- hover and motion extras ---------- */
+.lift { transition: transform .25s cubic-bezier(.2,.9,.2,1), box-shadow .25s ease; transform-style: preserve-3d; }
+.lift:hover { transform: perspective(800px) translateY(-5px) rotateX(3deg) scale(1.015); box-shadow: 0 24px 40px -12px rgba(74,50,184,.28); }
+.lift .tile3d { transition: transform .3s cubic-bezier(.3,1.5,.5,1); }
+.lift:hover .tile3d { transform: translateY(-3px) rotate(-8deg) scale(1.12); }
+.tile3d { transition: transform .3s cubic-bezier(.3,1.5,.5,1); }
+.tile3d:hover { transform: translateY(-3px) rotate(-8deg) scale(1.1); }
+.pebble { transition: transform .3s cubic-bezier(.3,1.5,.5,1); }
+.pebble:hover { transform: scale(1.15) translateY(-2px); }
+.clay { transition: transform .3s cubic-bezier(.2,.9,.2,1), box-shadow .3s ease; }
+.clay-hover:hover { transform: translateY(-4px); }
+.b3d:not(:disabled):hover { filter: brightness(1.06) saturate(1.1); }
+.b3d svg { transition: transform .25s cubic-bezier(.3,1.5,.5,1); }
+.b3d:not(:disabled):hover svg { transform: scale(1.18) rotate(-6deg); }
+@keyframes wobble { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-5deg) scale(1.05); } 75% { transform: rotate(5deg) scale(1.05); } }
+.wobble:hover { animation: wobble .5s ease; }
+@media (prefers-reduced-motion: reduce) { .lift:hover, .tile3d:hover, .pebble:hover { transform: none; } }

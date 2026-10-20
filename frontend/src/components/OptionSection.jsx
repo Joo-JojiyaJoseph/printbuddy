@@ -7,7 +7,7 @@ import { ChevronDown } from 'lucide-react'
  */
 export default function OptionSection({ id, icon: Icon, title, summary, warn = false, open, onToggle, children }) {
   return (
-    <section className={`rounded-2xl border bg-white ${open ? 'border-accent/60 shadow-[0_6px_18px_rgba(10,74,82,.08)]' : 'border-[var(--border)]'}`}>
+    <section className={`rounded-2xl border bg-white ${open ? 'border-accent/60 shadow-[0_6px_18px_rgba(74,50,184,.08)]' : 'border-[var(--border)]'}`}>
       <h3 className="m-0">
         <button type="button" id={`${id}-h`} aria-expanded={open} aria-controls={`${id}-p`} onClick={onToggle}
           className="flex min-h-14 w-full items-center gap-3 rounded-2xl px-3 text-left">

@@ -66,7 +66,7 @@ export default function CropModal({ doc, rot = 0, crop, onApply, onClose }) {
             <div className="absolute inset-0 overflow-hidden rounded-lg bg-[#f4f4f8]" style={{ containerType: 'size' }}><CellImage url={doc.preview_url} name="" rot={rot} fit="fit" /></div>
             {/* the dimming is clipped to the picture; the frame and its handles are not, so the handles on the edge stay whole */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg">
-              <div className="absolute" style={{ left: `${c.l * 100}%`, top: `${c.t * 100}%`, right: `${c.r * 100}%`, bottom: `${c.b * 100}%`, boxShadow: '0 0 0 100vmax rgba(16,36,43,.55)' }} />
+              <div className="absolute" style={{ left: `${c.l * 100}%`, top: `${c.t * 100}%`, right: `${c.r * 100}%`, bottom: `${c.b * 100}%`, boxShadow: '0 0 0 100vmax rgba(31,27,61,.55)' }} />
             </div>
             <div role="presentation" data-testid="crop-frame" onPointerDown={(e) => start(e, 'frame')} onPointerMove={move} onPointerUp={end} onPointerCancel={end}
               className="absolute cursor-move touch-none outline outline-2 outline-white"

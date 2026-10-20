@@ -15,14 +15,14 @@ export default function DocumentCard({ doc, selected, selectable, order, onSelec
   }, [preparing])
   const Icon = doc.kind === 'jpg' || doc.kind === 'png' ? Image : FileText
   return (
-    <div className={`flex items-center gap-2 rounded-[var(--radius-card)] border-2 bg-white p-2.5 transition-colors ${selected ? 'border-accent-2 bg-[#eef8f8] shadow-[0_6px_18px_rgba(10,74,82,.15)]' : 'border-[var(--border)]'}`}>
+    <div className={`flex items-center gap-2 lift rounded-[var(--radius-card)] border-2 bg-white p-2.5 transition-colors ${selected ? 'border-accent-2 bg-[#f3efff] shadow-[0_6px_18px_rgba(74,50,184,.15)]' : 'border-[var(--border)]'}`}>
       <button type="button" disabled={!selectable} onClick={onSelect} aria-pressed={selected}
         className="flex min-h-14 min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-default">
-        <span className={`grid size-11 flex-none place-items-center rounded-2xl ${selected ? 'bg-gradient-to-br from-accent to-accent-2 text-white' : 'bg-[var(--hi)] text-[var(--muted)]'}`}>
+        <span className={`tile3d grid size-11 flex-none place-items-center rounded-2xl ${selected ? 'bg-gradient-to-br from-accent to-accent-2 text-white' : 'bg-[var(--hi)] text-[var(--muted)]'}`}>
           {selected ? (order ? <span className="text-base font-bold" aria-label={`Number ${order}`}>{order}</span> : <Check size={22} strokeWidth={3} aria-hidden="true" />) : <Icon aria-hidden="true" size={22} />}
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-[1.0625rem] font-bold">{doc.original_name}</span>
+          <span className="block truncate text-[0.9987rem] font-bold">{doc.original_name}</span>
           <span className="block text-xs text-[var(--muted)]">
             {formatBytes(doc.size_bytes)} ·{' '}
             {doc.status === 'ready' && `${doc.page_count} ${doc.page_count === 1 ? 'page' : 'pages'}`}

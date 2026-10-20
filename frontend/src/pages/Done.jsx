@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
-import { CheckCircle2, Loader2, Printer, ShieldCheck, TriangleAlert } from 'lucide-react'
+import { CheckCircle2, Loader2, ShieldCheck, TriangleAlert } from 'lucide-react'
 import Confetti from '../components/Confetti'
 import PrintArt from '../components/PrintArt'
 import CustomerLayout from '../layouts/CustomerLayout'
 import Card from '../components/ui/Card'
-import QuoteCard from '../components/QuoteCard'
+import { PriceSlip, SettingsSlip } from '../components/OrderTicket'
 import { useSession } from '../context/SessionContext'
 import { api } from '../services/api'
-import { describeSettings } from '../utils/printOptions'
 
 const TERMINAL = ['sent', 'failed']
 
@@ -16,7 +15,7 @@ function PrintStatus({ print }) {
   const status = print?.status ?? 'queued'
   if (status === 'sent') {
     return (
-      <Card role="status" className="mb-3 flex items-start gap-3 border-accent">
+      <Card role="status" className="mb-4 flex animate-pop items-start gap-3 border-accent">
         <CheckCircle2 aria-hidden="true" className="mt-0.5 shrink-0 text-accent" />
         <div><b data-testid="print-status">Sent to the printer</b><p className="m-0 text-sm text-[var(--muted)]">{print.message}</p></div>
       </Card>
@@ -35,6 +34,21 @@ function PrintStatus({ print }) {
       <Loader2 aria-hidden="true" className="mt-0.5 shrink-0 animate-spin" />
       <div><b data-testid="print-status">Printing…</b><p className="m-0 text-sm text-[var(--muted)]">{print?.message ?? 'Preparing your pages for the printer…'}</p></div>
     </Card>
+  )
+}
+
+/** A glossy mint sphere with a drawn tick, rings that ripple out, and a few sparkles. Shown once the server has verified the payment. */
+function SuccessBadge() {
+  return (
+    <div className="relative mx-auto grid size-32 place-items-center" aria-hidden="true">
+      {[0, 0.6, 1.2].map((d) => <span key={d} className="absolute inset-0 animate-ripple rounded-full border-2 border-[#6ee7b7]" style={{ animationDelay: `${d}s` }} />)}
+      <span className="animate-pop relative grid size-24 place-items-center rounded-full bg-[radial-gradient(circle_at_32%_26%,#d9fff0_0_8%,#6ee7b7_30%,#12b886_70%,#0b7a5c_100%)] shadow-[inset_-8px_-12px_22px_rgba(6,70,50,.35),inset_0_3px_3px_rgba(255,255,255,.6),0_22px_30px_-10px_rgba(11,122,92,.55)]">
+        <svg viewBox="0 0 24 24" className="size-12 drop-shadow-[0_3px_2px_rgba(6,70,50,.4)]" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" strokeDasharray="48" className="animate-draw" /></svg>
+      </span>
+      <i className="absolute -right-1 top-2 size-3 animate-twinkle rounded-full bg-[#ffb3c8]" />
+      <i className="absolute -left-2 top-10 size-2.5 animate-twinkle rounded-full bg-[#9a80ff] [animation-delay:-.8s]" />
+      <i className="absolute bottom-1 right-0 size-2 animate-twinkle rounded-full bg-[#ffd36e] [animation-delay:-1.5s]" />
+    </div>
   )
 }
 
@@ -70,9 +84,10 @@ export default function Done() {
       <div className="mx-auto max-w-2xl">
         <div className="text-center">
           {printStatus === 'sent' && <Confetti />}
-          <div className="my-2"><PrintArt state={failed ? 'failed' : printStatus === 'sent' ? 'sent' : 'printing'} /></div>
-          <h1 className="m-0 text-2xl font-extrabold leading-tight tracking-tight md:text-3xl">{failed ? 'Paid · Printing needs help' : 'Payment received'}</h1>
-          <p className="mb-4 mt-1 text-base text-[var(--muted)]">Order <b data-testid="order-ref">{order.reference}</b></p>
+          <SuccessBadge />
+          <h1 className="m-0 mt-2 animate-rise text-[1.625rem] font-extrabold leading-tight tracking-tight md:text-3xl">{failed ? 'Payment successful · Printing needs help' : 'Payment successful'}</h1>
+          <p className="mb-3 mt-2 animate-rise [animation-delay:.1s]"><span className="clay inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm text-[var(--muted)]">Order <b data-testid="order-ref" className="tracking-wide text-[var(--text)]">{order.reference}</b></span></p>
+          <div className="mb-2"><PrintArt state={failed ? 'failed' : printStatus === 'sent' ? 'sent' : 'printing'} /></div>
         </div>
         <PrintStatus print={order.print} />
         {order.print?.status === 'sent' && (
@@ -81,18 +96,9 @@ export default function Done() {
             Privacy: your files are erased from this kiosk{order.print.files_erased_at ? ` at ${new Date(order.print.files_erased_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ' shortly after printing'}.
           </p>
         )}
-        <div className="md:grid md:grid-cols-2 md:gap-3">
-          <Card className="mb-3">
-            <p className="m-0 flex items-center gap-2 truncate font-bold"><Printer aria-hidden="true" size={16} className="shrink-0" />{order.document.name}</p>
-            <dl className="m-0 mt-2">
-              {describeSettings(order.settings).map(([k, v]) => (
-                <div key={k} className="flex justify-between border-b border-dashed border-[var(--border)] py-2 text-[1.0625rem] last:border-0">
-                  <dt className="text-[var(--muted)]">{k}</dt><dd className="m-0 font-bold">{v}</dd>
-                </div>
-              ))}
-            </dl>
-          </Card>
-          <QuoteCard quote={order.pricing_snapshot} />
+        <div className="md:grid md:grid-cols-2 md:items-start md:gap-4">
+          <SettingsSlip name={order.document.name} settings={order.settings} />
+          <div className="mt-4 md:mt-0 [&>div]:mt-0"><PriceSlip quote={order.pricing_snapshot} /></div>
         </div>
       </div>
     </CustomerLayout>

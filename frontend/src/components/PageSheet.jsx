@@ -41,7 +41,7 @@ export default function PageSheet({ pdf, item, ratio, paperMm, renderWidth = 400
   return (
     <div role="img" aria-label={label}
       style={{ aspectRatio: ratio, filter: grayscale ? 'grayscale(1)' : undefined }}
-      className={`relative w-full overflow-hidden rounded-[5px] bg-white shadow-[0_10px_30px_rgba(16,36,43,.35)] ${className}`}>
+      className={`relative w-full overflow-hidden rounded-[5px] bg-white shadow-[0_10px_30px_rgba(31,27,61,.35)] ${className}`}>
       {item?.src == null ? (
         <span className="absolute inset-0 grid place-items-center text-xs text-[#aaa]">Blank</span>
       ) : (

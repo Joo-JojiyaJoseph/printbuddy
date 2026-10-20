@@ -1,9 +1,9 @@
 /**
  * Taprint logo. Original artwork: a teal printer on a deep-teal tile, a paper with a tiny QR "finder" pattern
  * going in, a printed page coming out, a coral status light and a tap ripple in the corner.
- * Brand colours: teal #0E7C86, deep teal #0A4A52, coral #FF6B4A, ink #10242B, white.
+ * Brand colours: teal #7c5cfc, deep teal #4a32b8, coral #ff7a9c, ink #1f1b3d, white.
  */
-export const BRAND = { teal: '#14A3AE', brand: '#0E7C86', deep: '#0A4A52', coral: '#FF6B4A', ink: '#10242B', mist: '#BFE6E8' }
+export const BRAND = { teal: '#9b82ff', brand: '#7c5cfc', deep: '#4a32b8', coral: '#ff7a9c', ink: '#1f1b3d', mist: '#d9ceff' }
 
 export function Mark({ size = 40, title = 'Taprint' }) {
   return (

@@ -29,7 +29,7 @@ export default function SmartAssistant({ state, insights, settings, onApply, isI
   if (state === 'unavailable') return null
   const list = state === 'done' ? suggestionsFor(insights, settings, isImage, pageCount) : []
   return (
-    <section aria-label="Smart assistant" aria-live="polite" className="relative mb-3 overflow-hidden rounded-[22px] border border-white/70 bg-gradient-to-br from-[#e3f3f3]/90 via-white/80 to-[#f0f9f9]/90 p-3.5 shadow-[0_10px_30px_rgba(10,74,82,.12)] backdrop-blur-xl">
+    <section aria-label="Smart assistant" aria-live="polite" className="relative mb-3 overflow-hidden rounded-[22px] border border-white/70 bg-gradient-to-br from-[#ece6ff]/90 via-white/80 to-[#f6f2ff]/90 p-3.5 shadow-[0_10px_30px_rgba(74,50,184,.12)] backdrop-blur-xl">
       <h3 className="m-0 flex items-center gap-2 text-sm font-bold">
         <span className="grid size-8 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-2 text-white"><Sparkles size={16} aria-hidden="true" className="animate-twinkle" /></span>
         Smart assistant

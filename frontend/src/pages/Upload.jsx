@@ -54,7 +54,7 @@ export default function Upload() {
         <Button variant="ghost" onClick={() => navigate(`/s/${token}`)}>Back</Button>
         <Button loading={busy} disabled={!chosen.length} onClick={next}>{chosen.length > 1 ? `Continue with ${chosen.length} files` : 'Continue'}</Button>
       </>}>
-      <h1 className="mb-1 mt-2 text-[1.375rem] font-bold leading-tight tracking-tight">Where is your file?</h1>
+      <h1 className="mb-1 mt-2 text-[1.292rem] font-bold leading-tight tracking-tight">Where is your file?</h1>
       <p className="mb-3 mt-0 text-sm text-[var(--muted)]">{docs.length || uploads.length ? (ready.length > 1 ? 'Tap the file you want to print. Tap more than one to print them together.' : 'Your file is ready. Tap Continue.') : 'Pick files from this phone, or scan a page with the camera.'}</p>
       <ul className="stagger mb-3 mt-1 space-y-2.5 p-0" style={{ listStyle: 'none' }} aria-label="Your documents">
         {uploads.map((u) => (

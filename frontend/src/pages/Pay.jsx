@@ -83,14 +83,14 @@ export default function Pay() {
             ) : links ? (
               <div className="mt-5">
                 <a href={links.any} onClick={() => setLaunched(true)}
-                  className="flex min-h-[3.125rem] w-full items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-gradient-to-r from-coral-deep to-[#E24A26] px-5 text-base font-bold text-white shadow-[0_10px_26px_rgba(214,64,31,.35)] active:scale-95">
+                  className="flex min-h-[3.125rem] w-full items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-gradient-to-r from-coral-deep to-[#ec4a78] px-5 text-base font-bold text-white shadow-[0_10px_26px_rgba(217,58,102,.35)] active:scale-95">
                   <Smartphone aria-hidden="true" size={20} /> Pay now
                 </a>
                 <p className="mb-2 mt-4 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Or choose your UPI app</p>
                 <div className="grid grid-cols-2 gap-2.5">
                   {links.apps.map((a) => (
                     <a key={a.id} href={a.href} onClick={() => setLaunched(true)}
-                      className="flex min-h-12 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-[1.0625rem] font-bold active:scale-95">
+                      className="flex min-h-12 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-[0.9987rem] font-bold active:scale-95">
                       {a.label}
                     </a>
                   ))}
@@ -101,7 +101,7 @@ export default function Pay() {
               <div className="mx-auto my-4 w-fit rounded-3xl bg-white p-3.5">
                 {payment.qr_image_url
                   ? <img src={payment.qr_image_url} alt="UPI payment QR code" width={220} height={220} className="block size-[13.75rem] object-contain" />
-                  : <QRCodeSVG value={payment.upi_uri ?? ''} size={200} level="M" fgColor="#10242B" bgColor="#ffffff" title="UPI payment QR code" />}
+                  : <QRCodeSVG value={payment.upi_uri ?? ''} size={200} level="M" fgColor="#1f1b3d" bgColor="#ffffff" title="UPI payment QR code" />}
               </div>
             )}
 
@@ -122,7 +122,7 @@ export default function Pay() {
               <div className="mt-5 border-t border-dashed border-[var(--border)] pt-4">
                 <p className="mb-2 mt-0 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Or scan this QR code with any UPI app</p>
                 <div className="mx-auto w-fit rounded-3xl bg-white p-3.5">
-                  <QRCodeSVG value={payment.upi_uri} size={192} level="M" fgColor="#10242B" bgColor="#ffffff" title="UPI payment QR code" />
+                  <QRCodeSVG value={payment.upi_uri} size={192} level="M" fgColor="#1f1b3d" bgColor="#ffffff" title="UPI payment QR code" />
                 </div>
                 {!phone && <p className="mb-0 mt-2 text-sm text-[var(--muted)]">On a computer, scan this with your phone’s UPI app.</p>}
               </div>

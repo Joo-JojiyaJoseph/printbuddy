@@ -1,8 +1,8 @@
 const variants = {
-  primary: 'cta text-white bg-gradient-to-r from-accent-2 via-[#0C6670] to-accent-2 shadow-[0_10px_26px_rgba(10,74,82,.35)]',
-  pay: 'cta text-white bg-gradient-to-r from-coral-deep via-[#E24A26] to-coral-deep shadow-[0_10px_26px_rgba(214,64,31,.35)]',
-  ghost: 'text-[var(--text)] bg-white border border-[var(--border)] shadow-sm',
-  danger: 'text-white bg-danger',
+  primary: 'cta b3d text-white bg-gradient-to-b from-[#9a80ff] via-[#7c5cfc] to-[#6a4be0]',
+  pay: 'cta b3d text-white bg-gradient-to-b from-[#ff8fb0] via-[#ec4a78] to-[#d93a66] [--edge:#a82552] [--glow:rgba(217,58,102,.4)]',
+  ghost: 'b3d text-[var(--text)] bg-gradient-to-b from-white to-[#f1ecff] border border-[#d6cdf3] [--edge:#c2b6ec] [--glow:rgba(74,50,184,.14)]',
+  danger: 'b3d text-white bg-gradient-to-b from-[#ef6b7e] to-[#d9344a] [--edge:#9c2034] [--glow:rgba(217,52,74,.4)]',
 }
 
 export default function Button({ variant = 'primary', loading = false, className = '', children, disabled, ...props }) {
@@ -10,7 +10,7 @@ export default function Button({ variant = 'primary', loading = false, className
     <button
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`relative min-h-[3.5rem] flex-1 overflow-hidden rounded-[var(--radius-btn)] px-4 text-[1.0625rem] leading-tight sm:px-6 font-bold transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[.97] disabled:opacity-40 disabled:hover:translate-y-0 ${variants[variant]} ${className}`}
+      className={`relative min-h-[3.5rem] flex-1 overflow-hidden rounded-[var(--radius-btn)] px-4 text-[0.9987rem] leading-tight sm:px-6 font-bold disabled:opacity-40 ${variants[variant]} ${className}`}
       {...props}
     >
       {loading ? 'Please wait…' : children}

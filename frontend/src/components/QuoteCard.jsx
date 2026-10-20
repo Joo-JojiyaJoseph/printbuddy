@@ -3,7 +3,7 @@ import { formatINR } from '../utils/format'
 import { IS_MOCK } from '../services/api'
 
 const Row = ({ k, v, total }) => (
-  <div className={`flex justify-between border-b border-dashed border-[var(--border)] py-2 ${total ? 'border-0 text-xl font-extrabold' : 'text-[1.0625rem]'}`}><span>{k}</span><span>{v}</span></div>
+  <div className={`flex justify-between border-b border-dashed border-[var(--border)] py-2 ${total ? 'border-0 text-xl font-extrabold' : 'text-[0.9987rem]'}`}><span>{k}</span><span>{v}</span></div>
 )
 
 export default function QuoteCard({ quote, loading, error }) {
@@ -22,7 +22,7 @@ export default function QuoteCard({ quote, loading, error }) {
           <Row k="Subtotal" v={formatINR(quote.subtotal_paise)} />
           {quote.service_fee_paise > 0 && <Row k="Service fee" v={formatINR(quote.service_fee_paise)} />}
           {quote.tax_paise > 0 && <Row k="Tax" v={formatINR(quote.tax_paise)} />}
-          <div className="mt-2 flex items-center justify-between rounded-2xl bg-gradient-to-r from-[#e3f3f3] to-[#e3f3f3] px-4 py-3.5 text-xl font-extrabold"><span>Total</span><span className="text-primary text-2xl">{formatINR(quote.total_paise)}</span></div>
+          <div className="mt-2 flex items-center justify-between rounded-2xl bg-gradient-to-r from-[#ece6ff] to-[#ece6ff] px-4 py-3.5 text-xl font-extrabold"><span>Total</span><span className="text-primary text-2xl">{formatINR(quote.total_paise)}</span></div>
           <p className="m-0 mt-1 text-xs text-[var(--muted)]">{quote.sheets} {quote.sheets === 1 ? 'sheet' : 'sheets'} of paper</p>
         </div>
       )}

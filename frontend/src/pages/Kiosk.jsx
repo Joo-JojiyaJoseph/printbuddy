@@ -59,12 +59,12 @@ export default function Kiosk() {
         {phase === 'creating' && <div className="mx-auto size-[15.75rem] animate-pulse rounded-3xl bg-[var(--hi)]" role="status" aria-label="Creating session" />}
         {session && phase === 'waiting' && (
           <div className={`mx-auto w-fit rounded-[26px] bg-white p-3.5 shadow-[0_0_0_6px_var(--border)] animate-pulse-ring ${expired ? 'opacity-30' : ''}`}>
-            <QRCodeSVG value={url} size={224} level="M" fgColor="#10242B" bgColor="#ffffff" title="Session QR code" />
+            <QRCodeSVG value={url} size={224} level="M" fgColor="#1f1b3d" bgColor="#ffffff" title="Session QR code" />
           </div>
         )}
         {session && phase === 'connected' && (
-          <div className="mx-auto grid w-full max-w-sm place-items-center gap-2 rounded-[26px] bg-gradient-to-br from-[#e3f3f3] to-[#e3f3f3] px-5 py-8" role="status">
-            <span className="grid size-20 place-items-center rounded-full bg-gradient-to-br from-accent to-accent-2 text-white shadow-[0_12px_30px_rgba(10,74,82,.35)]"><Smartphone size={38} aria-hidden="true" /></span>
+          <div className="mx-auto grid w-full max-w-sm place-items-center gap-2 rounded-[26px] bg-gradient-to-br from-[#ece6ff] to-[#ece6ff] px-5 py-8" role="status">
+            <span className="grid size-20 place-items-center rounded-full bg-gradient-to-br from-accent to-accent-2 text-white shadow-[0_12px_30px_rgba(74,50,184,.35)]"><Smartphone size={38} aria-hidden="true" /></span>
             <p className="m-0 mt-2 text-xl font-bold">A customer is using this kiosk</p>
             <p className="m-0 text-sm text-[var(--muted)]">They are choosing files and paying on their phone. Please wait, or scan again when this screen shows a new code.</p>
           </div>

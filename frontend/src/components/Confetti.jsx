@@ -1,4 +1,4 @@
-const COLORS = ['#0E7C86', '#0A4A52', '#12a679', '#ec4899', '#f59e0b', '#9fdadd']
+const COLORS = ['#7c5cfc', '#4a32b8', '#12a679', '#ec4899', '#f59e0b', '#cdbfff']
 
 /** A short burst of falling confetti (decorative; hidden from screen readers; off when the device asks for less motion). */
 export default function Confetti({ count = 28 }) {

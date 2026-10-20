@@ -14,8 +14,8 @@ export default function Login({ onSignIn }) {
     try { await onSignIn(email.trim(), password) } catch (x) { setErr(x.message || 'Could not sign in') } finally { setBusy(false) }
   }
   return (
-    <div className="grid min-h-dvh place-items-center bg-[#F3F8F8] p-4">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[0_12px_40px_rgba(10,74,82,.12)]">
+    <div className="grid min-h-dvh place-items-center bg-[#f6f3ff] p-4">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[0_12px_40px_rgba(74,50,184,.12)]">
         <Logo size={38} full />
         <h1 className="m-0 mt-5 text-xl font-bold">Admin sign in</h1>
         <p className="m-0 mt-1 text-sm text-[var(--muted)]">Staff only.</p>

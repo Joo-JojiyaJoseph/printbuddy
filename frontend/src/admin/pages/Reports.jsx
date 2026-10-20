@@ -23,7 +23,7 @@ function RevenueChart({ daily }) {
     <div className="relative">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Revenue per day" className="block h-auto w-full">
         {ticks.map((t) => (
-          <g key={t}><line x1={L} x2={W} y1={y(t)} y2={y(t)} stroke="#d9e6e8" strokeWidth="1" /><text x={L - 6} y={y(t) + 4} textAnchor="end" fontSize="11" fill="#5b7077">{`₹${Math.round(t / 100)}`}</text></g>
+          <g key={t}><line x1={L} x2={W} y1={y(t)} y2={y(t)} stroke="#e1daf5" strokeWidth="1" /><text x={L - 6} y={y(t) + 4} textAnchor="end" fontSize="11" fill="#6a6790">{`₹${Math.round(t / 100)}`}</text></g>
         ))}
         {daily.map((d, i) => {
           const x = L + i * bw
@@ -31,15 +31,15 @@ function RevenueChart({ daily }) {
           return (
             <g key={d.date} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(i)} onBlur={() => setHover(null)} tabIndex={0} aria-label={`${short(d.date)}: ${formatINR(d.revenue_paise)}, ${d.orders} orders`}>
               <rect x={x} y={T} width={bw} height={H - T - B} fill="transparent" />
-              {d.revenue_paise > 0 && <path d={`M${x + bw * 0.15},${H - B} V${top + 3} a3,3 0 0 1 3,-3 h${Math.max(1, bw * 0.7 - 6)} a3,3 0 0 1 3,3 V${H - B} Z`} fill={hover === i ? '#0A4A52' : '#0E7C86'} />}
-              {i % every === 0 && <text x={x + bw / 2} y={H - 8} textAnchor="middle" fontSize="11" fill="#5b7077">{short(d.date)}</text>}
+              {d.revenue_paise > 0 && <path d={`M${x + bw * 0.15},${H - B} V${top + 3} a3,3 0 0 1 3,-3 h${Math.max(1, bw * 0.7 - 6)} a3,3 0 0 1 3,3 V${H - B} Z`} fill={hover === i ? '#4a32b8' : '#7c5cfc'} />}
+              {i % every === 0 && <text x={x + bw / 2} y={H - 8} textAnchor="middle" fontSize="11" fill="#6a6790">{short(d.date)}</text>}
             </g>
           )
         })}
-        <line x1={L} x2={W} y1={H - B} y2={H - B} stroke="#9db3b8" strokeWidth="1" />
+        <line x1={L} x2={W} y1={H - B} y2={H - B} stroke="#a9a5c8" strokeWidth="1" />
       </svg>
       {h && (
-        <div className="pointer-events-none absolute right-2 top-0 rounded-lg bg-[#10242B] px-2.5 py-1.5 text-xs text-white shadow-lg">
+        <div className="pointer-events-none absolute right-2 top-0 rounded-lg bg-[#1f1b3d] px-2.5 py-1.5 text-xs text-white shadow-lg">
           <b>{short(h.date)}</b> · {formatINR(h.revenue_paise)} · {h.orders} order{h.orders === 1 ? '' : 's'}
         </div>
       )}

@@ -32,7 +32,7 @@ export function PageHead({ title, sub, children }) {
 
 export function Panel({ title, action, children, className = '' }) {
   return (
-    <section className={`min-w-0 rounded-2xl border border-[var(--border)] bg-white p-4 shadow-[0_4px_16px_rgba(10,74,82,.06)] ${className}`}>
+    <section className={`min-w-0 rounded-2xl border border-[var(--border)] bg-white p-4 shadow-[0_4px_16px_rgba(74,50,184,.06)] ${className}`}>
       {(title || action) && (
         <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
           {title && <h2 className="m-0 text-[0.9375rem] font-bold">{title}</h2>}
