@@ -15,7 +15,7 @@ use RuntimeException;
  * Razorpay test account in this repository (no credentials available) — see docs/payments.md for
  * the sandbox checklist before enabling PAYMENT_PROVIDER=razorpay.
  */
-final class RazorpayProvider implements PaymentProvider
+final class RazorpayProvider implements PaymentProvider, CheckoutProvider
 {
     public function __construct(
         private readonly string $keyId,
@@ -33,18 +33,23 @@ final class RazorpayProvider implements PaymentProvider
     public function ping(): array
     {
         try {
-            $res = $this->http()->get('/payments/qr_codes', ['count' => 1]);
+            $qr = $this->http()->get('/payments/qr_codes', ['count' => 1]);
+            if ($qr->successful()) {
+                return ['ok' => true, 'message' => 'Razorpay accepted the keys. UPI QR Codes and the card / netbanking window are both available.'];
+            }
+            if ($qr->status() === 401) {
+                return ['ok' => false, 'message' => 'Razorpay rejected these keys. Check the Key ID and Key Secret.'];
+            }
+            // QR Codes may simply not be enabled on the account; the card / netbanking window does not need them.
+            $orders = $this->http()->get('/orders', ['count' => 1]);
         } catch (\Throwable) {
-            return ['ok' => false, 'message' => 'Could not reach Razorpay. Check the internet connection of the server.'];
+            return ['ok' => false, 'message' => 'Could not reach Razorpay. Check the internet connection of the server (on Windows this is often a missing CA certificate file for PHP cURL).'];
         }
-        if ($res->successful()) {
-            return ['ok' => true, 'message' => 'Razorpay accepted the keys and QR Codes are enabled.'];
-        }
-        if ($res->status() === 401) {
-            return ['ok' => false, 'message' => 'Razorpay rejected these keys. Check the Key ID and Key Secret.'];
+        if ($orders->successful()) {
+            return ['ok' => true, 'message' => 'Razorpay accepted the keys. The card / netbanking window works. UPI QR Codes are not enabled on this account (ask Razorpay support to enable them), so customers will pay in the Razorpay window.'];
         }
 
-        return ['ok' => false, 'message' => 'Razorpay answered with error '.$res->status().'. If QR Codes are not enabled on your account, ask Razorpay support to enable them.'];
+        return ['ok' => false, 'message' => 'Razorpay answered with error '.$orders->status().'. Check the keys and that they belong to the same mode (test or live).'];
     }
 
     public function createPayment(string $orderReference, int $amountPaise, string $currency): array
@@ -64,7 +69,8 @@ final class RazorpayProvider implements PaymentProvider
             'notes' => ['order_reference' => $orderReference],
         ]);
         if (! $res->successful() || ! is_string($res->json('id'))) {
-            throw new RuntimeException('The payment provider could not create a QR code.');
+            // Razorpay's own explanation goes to the log (it never contains keys) so the shop owner can see what to fix.
+            throw new RuntimeException('The payment provider could not create a QR code: '.mb_substr((string) ($res->json('error.description') ?? 'HTTP '.$res->status()), 0, 200));
         }
 
         return [
@@ -74,8 +80,66 @@ final class RazorpayProvider implements PaymentProvider
         ];
     }
 
+    public function createCheckout(string $orderReference, int $amountPaise, string $currency): array
+    {
+        if ($currency !== 'INR') {
+            throw new RuntimeException('Razorpay Checkout is set up for INR only.');
+        }
+        $res = $this->http()->post('/orders', [
+            'amount' => $amountPaise,
+            'currency' => 'INR',
+            'receipt' => substr($orderReference, 0, 40),
+            'notes' => ['order_reference' => $orderReference],
+        ]);
+        if (! $res->successful() || ! is_string($res->json('id'))) {
+            throw new RuntimeException('The payment provider could not create a checkout order.');
+        }
+        // The amount Razorpay stored must be the amount we asked for.
+        if ((int) $res->json('amount') !== $amountPaise) {
+            throw new RuntimeException('The payment provider returned a different amount.');
+        }
+
+        return ['provider_payment_id' => $res->json('id'), 'expires_at' => time() + $this->ttlSeconds];
+    }
+
+    public function checkoutKeyId(): string
+    {
+        return $this->keyId;
+    }
+
+    public function verifyCheckoutSignature(string $providerOrderId, string $providerPaymentId, string $signature): bool
+    {
+        return $signature !== '' && hash_equals(hash_hmac('sha256', $providerOrderId.'|'.$providerPaymentId, $this->keySecret), $signature);
+    }
+
+    public static function isCheckoutId(string $id): bool
+    {
+        return str_starts_with($id, 'order_');
+    }
+
+    /** Razorpay order JSON -> our status words. 'paid' is the only success; anything else is still open. */
+    public static function mapOrder(array $o): array
+    {
+        $paid = ($o['status'] ?? '') === 'paid';
+
+        return [
+            'status' => $paid ? 'succeeded' : 'pending',
+            'amount_paise' => (int) ($paid ? ($o['amount_paid'] ?? 0) : ($o['amount'] ?? 0)),
+            'currency' => (string) ($o['currency'] ?? 'INR'),
+            'order_reference' => (string) ($o['notes']['order_reference'] ?? ''),
+        ];
+    }
+
     public function fetchPayment(string $providerPaymentId): array
     {
+        if (self::isCheckoutId($providerPaymentId)) {
+            $res = $this->http()->get('/orders/'.rawurlencode($providerPaymentId));
+            if (! $res->successful()) {
+                throw new RuntimeException('The payment provider could not be reached.');
+            }
+
+            return self::mapOrder((array) $res->json());
+        }
         $res = $this->http()->get('/payments/qr_codes/'.rawurlencode($providerPaymentId));
         if (! $res->successful()) {
             throw new RuntimeException('The payment provider could not be reached.');
@@ -110,13 +174,17 @@ final class RazorpayProvider implements PaymentProvider
             return null;
         }
         $event = json_decode($rawBody, true);
-        $qrId = $event['payload']['qr_code']['entity']['id'] ?? null;
-        if (! is_string($qrId)) {
+        // qr_code.credited -> the QR's id; order.paid / payment.captured -> the Checkout order's id. Only a hint: the real status is looked up.
+        $id = $event['payload']['qr_code']['entity']['id']
+            ?? $event['payload']['order']['entity']['id']
+            ?? $event['payload']['payment']['entity']['order_id']
+            ?? null;
+        if (! is_string($id) || $id === '') {
             return null;
         }
         $eventId = $eventId ?: hash('sha256', $rawBody);
 
-        return ['event_id' => $eventId, 'provider_payment_id' => $qrId];
+        return ['event_id' => $eventId, 'provider_payment_id' => $id];
     }
 
     private function http()

@@ -35,6 +35,24 @@ class Payment extends Model
         return $this->belongsTo(PrintOrder::class, 'print_order_id');
     }
 
+    /** A payment made through the provider's Checkout window (cards, netbanking, wallets, UPI); the others are UPI QR codes. */
+    public const CHECKOUT_MARK = 'checkout';
+
+    public function isCheckout(): bool
+    {
+        return $this->qr_payload === self::CHECKOUT_MARK;
+    }
+
+    public function scopeCheckout($q)
+    {
+        return $q->where('qr_payload', self::CHECKOUT_MARK);
+    }
+
+    public function scopeUpi($q)
+    {
+        return $q->where(fn ($w) => $w->whereNull('qr_payload')->orWhere('qr_payload', '!=', self::CHECKOUT_MARK));
+    }
+
     public function isOpen(): bool
     {
         return $this->status === self::PENDING && $this->expires_at && $this->expires_at->isFuture();

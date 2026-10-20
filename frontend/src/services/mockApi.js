@@ -217,7 +217,7 @@ mockApi.createPayment = async (token, ref) => {
   const order = ownedOrder(token, ref)
   const existing = payments.get(ref)
   if (existing?.status === 'pending' && Date.parse(existing.expires_at) > Date.now()) {
-    return { payment: publicPayment(existing), order_status: order.status } // idempotent re-open
+    return { payment: publicPayment(existing), order_status: order.status, checkout_available: true } // idempotent re-open
   }
   if (!['configured', 'payment_failed', 'awaiting_payment'].includes(order.status)) throw new ApiError(409, `Order is ${order.status}.`)
   const pay = { id: 'mock_pay_' + hex().slice(0, 8), order_reference: ref, amount_paise: order.total_paise, currency: 'INR',
@@ -225,14 +225,20 @@ mockApi.createPayment = async (token, ref) => {
   payments.set(ref, pay)
   provider.set(ref, { status: 'pending', amount_paise: pay.amount_paise })
   if (order.status !== 'awaiting_payment') move(order, 'awaiting_payment')
-  return { payment: publicPayment(pay), order_status: order.status }
+  return { payment: publicPayment(pay), order_status: order.status, checkout_available: true }
 }
 mockApi.getPayment = async (token, ref) => {
   await delay(60)
   const order = ownedOrder(token, ref)
   verify(ref)
-  return { payment: publicPayment(payments.get(ref)), order_status: order.status }
+  return { payment: publicPayment(payments.get(ref)), order_status: order.status, checkout_available: true }
 }
+/** Demo: there is no Razorpay window here; the Pay page offers the sandbox "Customer pays" instead. */
+mockApi.createCheckout = async (token, ref) => {
+  ownedOrder(token, ref)
+  return { demo: true, checkout: { demo: true }, payment: publicPayment(payments.get(ref)) }
+}
+mockApi.confirmCheckout = async (token, ref) => mockApi.getPayment(token, ref)
 
 /** Sandbox-only controls (absent from the real API client). They act on the fake PROVIDER, never on our order. */
 mockApi.sandbox = {

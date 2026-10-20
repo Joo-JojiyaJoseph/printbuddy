@@ -84,6 +84,8 @@ class EloquentPaymentStore implements PaymentStore
             }
             $order->save();
             if ($orderStatus === 'paid') {
+                // The customer paid one way; any other open attempt for this order (QR vs card window) is closed.
+                Payment::query()->where('print_order_id', $order->id)->where('status', Payment::PENDING)->whereKeyNot($payment->id)->update(['status' => Payment::EXPIRED]);
                 // Only a server-verified payment reaches this point. The job row is created in the same
                 // transaction; the worker is dispatched after commit so it always sees a paid order.
                 PrintJob::query()->firstOrCreate(['print_order_id' => $order->id], ['status' => PrintJob::QUEUED]);

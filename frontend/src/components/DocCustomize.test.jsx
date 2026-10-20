@@ -18,13 +18,15 @@ function Harness({ settings = DEFAULT_SETTINGS, onEdits }) {
 const setup = (settings) => { const onEdits = vi.fn(); render(<Harness settings={settings} onEdits={onEdits} />); return onEdits }
 const click = (name) => fireEvent.click(screen.getByRole('button', { name }))
 const last = (fn) => fn.mock.calls.at(-1)[0]
+const section = (name) => fireEvent.click(screen.getByRole('button', { name }))
+const position = () => { section(/^Position on paper/); return screen.getByRole('region', { name: /^Position on paper/ }) }
 
 test('one screen: pages, print options, position and price together', () => {
   setup()
   expect(screen.getByRole('listbox', { name: 'Pages' })).toBeInTheDocument()
-  expect(screen.getByRole('textbox', { name: /Pages/ })).toBeInTheDocument() // page range, from the print options
-  expect(screen.getByRole('radiogroup', { name: 'Colour' })).toBeInTheDocument()
-  expect(screen.getByRole('region', { name: 'Position on paper' })).toBeInTheDocument()
+  expect(screen.getByRole('radiogroup', { name: 'Colour' })).toBeInTheDocument() // the everyday options are on screen
+  expect(screen.getByRole('button', { name: /Pages to print/ })).toHaveTextContent('All pages') // the rest is one tap away
+  expect(screen.getByRole('button', { name: /Position on paper/ })).toHaveTextContent('Fit page')
   expect(screen.getByText('price here')).toBeInTheDocument()
 })
 
@@ -63,7 +65,7 @@ test('remove, move and Undo change the plan and are reported to the page', () =>
 
 test('single-sided: position applies to all pages, or to just one', () => {
   const onEdits = setup()
-  fireEvent.click(within(screen.getByRole('region', { name: 'Position on paper' })).getByRole('radio', { name: /Top-left/ }))
+  fireEvent.click(within(position()).getByRole('radio', { name: /Top-left/ }))
   expect(last(onEdits).pages.every((p) => p.align === 'tl')).toBe(true)
   fireEvent.click(screen.getByRole('radio', { name: 'Page 1 only' }))
   fireEvent.click(screen.getByRole('radio', { name: /Centre/ }))
@@ -72,7 +74,7 @@ test('single-sided: position applies to all pages, or to just one', () => {
 
 test('double-sided: front sides and back sides are positioned separately', () => {
   const onEdits = setup({ ...DEFAULT_SETTINGS, duplex: true })
-  const panel = screen.getByRole('region', { name: 'Position on paper' })
+  const panel = position()
   expect(within(panel).getByRole('radio', { name: 'Front sides' })).toBeChecked()
   expect(within(panel).getByRole('radio', { name: 'Back sides' })).toBeInTheDocument()
   fireEvent.click(within(panel).getByRole('radio', { name: /Fill page/ })) // fronts: pages 1 and 3
@@ -100,5 +102,14 @@ test('an empty page is offered for removal', () => {
 
 test('several pages per sheet: no per-page position (each page is fitted into its own box)', () => {
   setup({ ...DEFAULT_SETTINGS, pages_per_sheet: 2 })
-  expect(screen.queryByRole('region', { name: 'Position on paper' })).toBeNull()
+  expect(screen.queryByRole('button', { name: /Position on paper/ })).toBeNull()
+})
+
+test('the Position header says where the pages sit, front and back separately when double-sided', () => {
+  setup({ ...DEFAULT_SETTINGS, duplex: true })
+  expect(screen.getByRole('button', { name: /Position on paper/ })).toHaveTextContent('Front: Fit page · Back: Fit page')
+  fireEvent.click(screen.getByRole('button', { name: /Set front & back/ })) // the hint under Sides opens it
+  fireEvent.click(screen.getByRole('radio', { name: 'Back sides' }))
+  fireEvent.click(screen.getByRole('radio', { name: /Top-left/ }))
+  expect(screen.getByRole('button', { name: /Position on paper/ })).toHaveTextContent('Front: Fit page · Back: Top-left')
 })

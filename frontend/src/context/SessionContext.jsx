@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { Outlet, useParams } from 'react-router-dom'
 import { api } from '../services/api'
 import { validateFile, LIMITS } from '../utils/fileValidation'
+import { needsConversion, conversionBlocker } from '../utils/convert/detect'
 import { DEFAULT_SETTINGS } from '../utils/printOptions'
 import { isImageKind } from '../utils/pagePlan'
 import CustomerLayout from '../layouts/CustomerLayout'
@@ -70,7 +71,18 @@ export default function SessionProvider() {
       if (!v.ok) { patch({ error: v.error }); continue }
       count += 1
       try {
-        await api.uploadDocument(token, file, { onProgress: (progress) => patch({ progress }) })
+        let toSend = file
+        if (needsConversion(v.kind)) { // Word / Excel / PowerPoint become a PDF here, in the browser: the server needs no Office software
+          const blocked = conversionBlocker(file, v.kind)
+          if (blocked) throw new Error(blocked)
+          patch({ note: 'Preparing your document…', progress: 0 })
+          const { convertToPdf } = await import('../utils/convert')
+          toSend = await convertToPdf(file, { onProgress: (f) => patch({ progress: Math.round(f * 100) }) })
+          const check = await validateFile(toSend, count - 1)
+          if (!check.ok) throw new Error(check.error)
+          patch({ note: null, progress: 0 })
+        }
+        await api.uploadDocument(token, toSend, { onProgress: (progress) => patch({ progress }) })
         setUploads((u) => u.filter((x) => x.tempId !== tempId))
         await refresh()
       } catch (e) {

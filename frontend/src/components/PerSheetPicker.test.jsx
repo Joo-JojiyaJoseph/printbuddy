@@ -27,10 +27,11 @@ describe('pages per sheet', () => {
   })
   it('the settings form shows the picker only for documents; position on paper is not here any more (it lives with the pages)', () => {
     const { rerender } = render(<PrintSettingsForm value={DEFAULT_SETTINGS} onChange={() => {}} pageCount={8} showLayout />)
+    fireEvent.click(screen.getByRole('button', { name: /Pages per sheet/ }))
     expect(screen.getByRole('radiogroup', { name: 'Pages per sheet' })).toBeInTheDocument()
     expect(screen.queryByRole('radiogroup', { name: 'Scaling' })).toBeNull()
     rerender(<PrintSettingsForm value={DEFAULT_SETTINGS} onChange={() => {}} pageCount={1} />)
-    expect(screen.queryByRole('radiogroup', { name: 'Pages per sheet' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Pages per sheet/ })).toBeNull()
   })
   it('the order summary names the layout only when it is not 1 per sheet', () => {
     expect(describeSettings(DEFAULT_SETTINGS).some(([k]) => k === 'Layout')).toBe(false)

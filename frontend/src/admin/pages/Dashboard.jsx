@@ -23,7 +23,7 @@ export default function Dashboard() {
   const alerts = []
   if (d.print_failed > 0) alerts.push(<>{d.print_failed} paid order(s) did not print. <Link className="font-semibold underline" to="/admin/orders?status=paid">Open orders</Link> and press “Retry print”.</>)
   if (d.payments_needing_review > 0) alerts.push(<>{d.payments_needing_review} payment(s) need review. <Link className="font-semibold underline" to="/admin/payments">Open payments</Link>.</>)
-  if (!d.conversion_available) alerts.push('Office files (Word, Excel, PowerPoint) cannot be converted: LibreOffice is not available on the server.')
+  if (d.conversion_driver === 'libreoffice' && !d.conversion_available) alerts.push('Office files (Word, Excel, PowerPoint) cannot be converted: LibreOffice is not available on the server.')
   if (d.payment_provider === 'fake') alerts.push(<>Payments are in sandbox mode: no real money is taken. Set up Razorpay in <Link className="font-semibold underline" to="/admin/payment">Payment gateway</Link>.</>)
   const by = Object.entries(d.orders_by_status || {})
   const max = Math.max(1, ...by.map(([, n]) => n))

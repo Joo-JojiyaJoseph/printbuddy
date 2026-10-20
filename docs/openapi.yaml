@@ -140,6 +140,10 @@ paths:
   /orders/{reference}/payment:
     post: { summary: Create provider payment for the exact server amount, security: [{ sessionToken: [] }], responses: { "201": { description: "UPI QR payload and expiry" } } }
     get: { summary: Poll payment; verifies with provider server-side, security: [{ sessionToken: [] }], responses: { "200": { description: ok } } }
+  /orders/{reference}/payment/checkout:
+    post: { summary: "Open a Razorpay Checkout (card, netbanking, wallet) payment; the server creates the provider order with the exact total", security: [{ sessionToken: [] }], responses: { "201": { description: "Public key id, provider order id and the fixed amount" } } }
+  /orders/{reference}/payment/confirm:
+    post: { summary: "The Checkout window finished: signature is checked, then the provider is asked whether the money arrived", security: [{ sessionToken: [] }], responses: { "200": { description: ok }, "422": { description: signature not valid } } }
   /webhooks/{provider}:
     post: { summary: "Signed provider webhook. Unsigned or replayed events never mark an order paid.", responses: { "200": { description: acknowledged }, "401": { description: bad signature } } }
   /admin/orders: { get: { summary: "Search/filter/paginate orders", security: [{ adminBearer: [] }], responses: { "200": { description: ok } } } }

@@ -14,15 +14,15 @@ export default function StepProgress({ current = 0 }) {
       <ol className="m-0 flex list-none items-start p-0" aria-hidden="true">
         {PHASES.map((s, i) => (
           <li key={s} className={`flex items-start ${i < PHASES.length - 1 ? 'flex-1' : ''}`}>
-            <span className="flex w-14 flex-none flex-col items-center gap-1">
-              <span className={`grid size-9 place-items-center rounded-full text-sm font-bold transition-all duration-500 ${
+            <span className="flex w-[4.5rem] flex-none flex-col items-center gap-1.5">
+              <span className={`grid size-11 place-items-center rounded-full text-base font-bold transition-all duration-500 ${
                 i < phase ? 'bg-mint text-white' : i === phase ? 'scale-110 bg-gradient-to-br from-accent to-accent-2 text-white shadow-[0_8px_20px_rgba(10,74,82,.45)]' : 'bg-[var(--hi)] text-[var(--muted)]'}`}>
-                {i < phase ? <Check size={18} strokeWidth={3} /> : i + 1}
+                {i < phase ? <Check size={22} strokeWidth={3} /> : i + 1}
               </span>
-              <span className={`text-xs font-bold sm:text-xs ${i === phase ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>{s}</span>
+              <span className={`text-sm font-bold ${i === phase ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>{s}</span>
             </span>
             {i < PHASES.length - 1 && (
-              <span className="relative mt-[1.0625rem] h-1 flex-1 overflow-hidden rounded-full bg-[var(--border)]">
+              <span className="relative mt-[1.25rem] h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--border)]">
                 <i className="absolute inset-y-0 left-0 block rounded-full bg-mint transition-all duration-700" style={{ width: i < phase ? '100%' : '0%' }} />
               </span>
             )}

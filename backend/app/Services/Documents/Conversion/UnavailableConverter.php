@@ -12,6 +12,6 @@ class UnavailableConverter implements DocumentConverter
 
     public function toPdf(string $sourcePath, string $targetPath): void
     {
-        throw new ConversionException('Office document conversion is not enabled on this server. Please upload a PDF.', retryable: false);
+        throw new ConversionException('Word, Excel and PowerPoint are prepared in the customer browser, not on this server. Save the file as a PDF and upload that.', retryable: false);
     }
 }

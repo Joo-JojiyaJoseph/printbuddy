@@ -48,7 +48,7 @@ export default function SettingsPage() {
                 </label>
               ))}
             </div>
-            {!data.conversion_available && <div className="mt-3"><Notice tone="warn">Word, Excel and PowerPoint need LibreOffice on the server, which is not available now.</Notice></div>}
+            {data.conversion_driver === 'libreoffice' && !data.conversion_available && <div className="mt-3"><Notice tone="warn">Word, Excel and PowerPoint need LibreOffice on the server, which is not available now.</Notice></div>}
           </Panel>
           <Panel title="Paper sizes"><Field label="Comma separated" hint="Each size needs a price on the Pricing page."><input className={inputCls} disabled={!isAdmin} value={f.paper_sizes} onChange={(e) => setF({ ...f, paper_sizes: e.target.value })} /></Field></Panel>
           <Panel title="Server (read only)">

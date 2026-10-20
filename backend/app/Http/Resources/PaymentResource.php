@@ -18,6 +18,7 @@ class PaymentResource extends JsonResource
             'provider' => $this->provider,
             'amount_paise' => $this->amount_paise,
             'currency' => $this->currency,
+            'method' => $this->isCheckout() ? 'checkout' : 'upi',
             'status' => $this->status,
             'upi_uri' => $isUpi ? $payload : null,
             'qr_image_url' => ! $isUpi && str_starts_with($payload, 'https://') ? $payload : null,

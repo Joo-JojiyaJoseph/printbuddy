@@ -21,7 +21,7 @@ export default function CustomerLayout({ step = 0, title, hint, children, footer
       <header className="relative z-10 mx-auto flex w-full max-w-[77.5rem] items-center justify-between gap-3 px-4 py-3 md:px-8">
         <div className="flex min-w-0 items-center gap-2.5">
           <Logo size={42} full />
-          <span className="ml-2 hidden border-l border-[var(--border)] pl-3 text-sm font-semibold text-[var(--muted)] md:inline">Tap In. Print Out.</span>
+          <span className="ml-2 hidden border-l border-[var(--border)] pl-3 text-base font-semibold text-[var(--muted)] md:inline">Tap In. Print Out.</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full glass px-3 py-1.5 text-sm font-bold text-[var(--text)] shadow-sm"><Lock size={14} aria-hidden="true" className="text-mint" /><span className="hidden sm:inline">Secure session</span><span className="sm:hidden">Secure</span></span>
@@ -36,10 +36,10 @@ export default function CustomerLayout({ step = 0, title, hint, children, footer
               <StepProgress current={step} />
               {title && title !== 'Taprint' && (
                 <div className="mt-4 flex items-center gap-3">
-                  <span className="grid size-11 flex-none place-items-center rounded-2xl bg-gradient-to-br from-accent to-accent-2 text-white shadow-[0_8px_20px_rgba(10,74,82,.3)]"><Icon size={22} aria-hidden="true" /></span>
+                  <span className="grid size-12 flex-none place-items-center rounded-2xl bg-gradient-to-br from-accent to-accent-2 text-white shadow-[0_8px_20px_rgba(10,74,82,.3)]"><Icon size={24} aria-hidden="true" /></span>
                   <div className="min-w-0">
-                    <h2 className="m-0 text-lg font-bold leading-tight md:text-xl">{title}</h2>
-                    {hint && <p className="m-0 mt-0.5 text-sm text-[var(--muted)]">{hint}</p>}
+                    <h2 className="m-0 text-xl font-extrabold leading-tight tracking-tight md:text-2xl">{title}</h2>
+                    {hint && <p className="m-0 mt-0.5 text-base leading-snug text-[var(--muted)]">{hint}</p>}
                   </div>
                 </div>
               )}

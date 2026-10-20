@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { Smartphone } from 'lucide-react'
+import { CreditCard, Smartphone } from 'lucide-react'
 import CustomerLayout from '../layouts/CustomerLayout'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
@@ -10,6 +10,7 @@ import { useCountdown, mmss } from '../hooks/useCountdown'
 import { api } from '../services/api'
 import { formatINR } from '../utils/format'
 import { upiLinks, canOpenUpiApps } from '../utils/upi'
+import { payWithCheckout } from '../utils/razorpay'
 
 export default function Pay() {
   const { ref } = useParams()
@@ -19,13 +20,17 @@ export default function Pay() {
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const [launched, setLaunched] = useState(false)
+  const [cardOk, setCardOk] = useState(false) // the server offers the card / netbanking window
+  const [cardBusy, setCardBusy] = useState(false)
+  const [note, setNote] = useState(null)
+  const [viaCard, setViaCard] = useState(false)
   const left = useCountdown(payment?.expires_at)
   const links = upiLinks(payment?.upi_uri)
   const phone = canOpenUpiApps()
 
   const open = useCallback(async () => {
-    setBusy(true); setError(null); setLaunched(false)
-    try { setPayment((await api.createPayment(token, ref)).payment) } catch (e) { setError(e.message) } finally { setBusy(false) }
+    setBusy(true); setError(null); setLaunched(false); setViaCard(false)
+    try { const r = await api.createPayment(token, ref); setPayment(r.payment); setCardOk(!!r.checkout_available) } catch (e) { setError(e.message) } finally { setBusy(false) }
   }, [token, ref])
   useEffect(() => { open() }, [open])
 
@@ -34,7 +39,7 @@ export default function Pay() {
   useEffect(() => {
     if (status !== 'pending') return
     const t = setInterval(async () => {
-      try { setPayment((await api.getPayment(token, ref)).payment) } catch { /* keep polling */ }
+      try { const r = await api.getPayment(token, ref); setPayment(r.payment); setCardOk(!!r.checkout_available) } catch { /* keep polling */ }
     }, 1500)
     return () => clearInterval(t)
   }, [status, token, ref])
@@ -42,20 +47,40 @@ export default function Pay() {
   useEffect(() => { if (status === 'succeeded') navigate(`/s/${token}/done/${ref}`, { replace: true }) }, [status, token, ref, navigate])
 
   const sb = api.sandbox
+  // Card, netbanking, wallet or UPI in Razorpay's own window. The amount was fixed by our server; we only learn
+  // "paid" when the server has asked Razorpay (the page keeps polling, exactly as for the UPI QR).
+  const payByCard = async () => {
+    setCardBusy(true); setError(null); setNote(null)
+    try {
+      const res = await api.createCheckout(token, ref)
+      if (res.demo) { sb?.customerPays(ref); setPayment((await api.getPayment(token, ref)).payment); return }
+      const done = await payWithCheckout(res.checkout)
+      setLaunched(true); setViaCard(true)
+      const out = await api.confirmCheckout(token, ref, done)
+      if (out.payment.status === 'succeeded') setPayment(out.payment)
+    } catch (e) {
+      if (e.message === 'closed') setNote('The payment window was closed. You have not been charged.')
+      else setError(e.message)
+    } finally { setCardBusy(false) }
+  }
   const act = async (fn) => { fn(); try { setPayment((await api.getPayment(token, ref)).payment) } catch (e) { setError(e.message) } }
 
   return (
-    <CustomerLayout step={4} title="Pay with UPI" hint="Tap your UPI app, or scan the code with any UPI app."
+    <CustomerLayout step={4} title={cardOk ? 'Pay for your print' : 'Pay with UPI'} hint={cardOk ? 'Use a UPI app, or a card, netbanking or wallet.' : 'Tap your UPI app, or scan the code with any UPI app.'}
       footer={status !== 'succeeded' && <Button variant="ghost" onClick={() => navigate(-1)}>Back</Button>}>
       {error && <Card role="alert" className="mt-4 text-danger">{error}</Card>}
       {!payment && !error && <div className="mt-6 h-72 animate-pulse rounded-3xl bg-[var(--hi)]" role="status" aria-label="Preparing payment" />}
       {payment && (
         <div className="mx-auto max-w-md text-center">
           <p className="mb-0 mt-3 text-sm text-[var(--muted)]">Order {ref}</p>
-          <p className="m-0 text-3xl font-bold tracking-tight md:text-4xl">{formatINR(payment.amount_paise)}</p>
+          <p className="m-0 text-5xl font-extrabold tracking-tight md:text-6xl">{formatINR(payment.amount_paise)}</p>
 
           {status === 'pending' && (<>
-            {links ? (
+            {payment.method === 'checkout' ? (
+              <div className="mt-5">
+                <Button loading={cardBusy} onClick={payByCard} className="w-full"><span className="flex items-center justify-center gap-2"><CreditCard aria-hidden="true" size={18} /> Pay with card, netbanking, wallet or UPI</span></Button>
+              </div>
+            ) : links ? (
               <div className="mt-5">
                 <a href={links.any} onClick={() => setLaunched(true)}
                   className="flex min-h-[3.125rem] w-full items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-gradient-to-r from-coral-deep to-[#E24A26] px-5 text-base font-bold text-white shadow-[0_10px_26px_rgba(214,64,31,.35)] active:scale-95">
@@ -65,7 +90,7 @@ export default function Pay() {
                 <div className="grid grid-cols-2 gap-2.5">
                   {links.apps.map((a) => (
                     <a key={a.id} href={a.href} onClick={() => setLaunched(true)}
-                      className="flex min-h-12 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-[0.9375rem] font-bold active:scale-95">
+                      className="flex min-h-12 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-[1.0625rem] font-bold active:scale-95">
                       {a.label}
                     </a>
                   ))}
@@ -80,7 +105,17 @@ export default function Pay() {
               </div>
             )}
 
-            <p role="status" className="mb-0 mt-5 font-bold">{launched ? 'Finish paying in your UPI app, then come back here…' : 'Waiting for payment…'}</p>
+            {cardOk && payment.method !== 'checkout' && (
+              <div className="mt-5">
+                <p className="mb-2 mt-0 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Or pay by card, netbanking or wallet</p>
+                <Button variant="ghost" loading={cardBusy} onClick={payByCard} className="w-full">
+                  <span className="flex items-center justify-center gap-2"><CreditCard aria-hidden="true" size={18} /> Card, netbanking or wallet</span>
+                </Button>
+              </div>
+            )}
+            {note && <p role="status" className="mb-0 mt-3 text-sm text-[var(--muted)]">{note}</p>}
+
+            <p role="status" className="mb-0 mt-5 font-bold">{launched ? (viaCard ? 'Confirming your payment…' : 'Finish paying in your UPI app, then come back here…') : 'Waiting for payment…'}</p>
             <p className="mt-1 text-sm text-[var(--muted)]">This page confirms automatically once your bank confirms the payment. Expires in {mmss(left)}.</p>
 
             {links && (

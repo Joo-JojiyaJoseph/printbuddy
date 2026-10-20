@@ -10,6 +10,7 @@ const imgs = [
   { id: 'c', original_name: 'scan.png', preview_url: 'blob:c', kind: 'png' },
 ]
 const last = (fn) => fn.mock.calls.at(-1)[0]
+const section = (name) => { const b = screen.getByRole('button', { name }); if (b.getAttribute('aria-expanded') !== 'true') fireEvent.click(b) }
 const setup = (settings = DEFAULT_SETTINGS, props = {}) => {
   const onEdits = vi.fn(), setSettings = vi.fn()
   render(<ImageCustomize doc={imgs[0]} images={imgs} edits={null} onEdits={onEdits} settings={settings} setSettings={setSettings}
@@ -22,11 +23,18 @@ const cell = () => screen.getAllByRole('button', { name: /^Place passport\.png/ 
 
 test('one screen: layout, sheet, print options and price together', () => {
   setup()
-  expect(screen.getByRole('radiogroup', { name: 'Images per page' })).toBeInTheDocument()
-  expect(screen.getByRole('radiogroup', { name: 'Colour' })).toBeInTheDocument()
-  expect(screen.getByRole('radiogroup', { name: 'Sides' })).toBeInTheDocument()
+  expect(screen.getByRole('radiogroup', { name: 'Colour' })).toBeVisible() // always on screen
+  expect(screen.getByRole('radiogroup', { name: 'Sides' })).toBeVisible()
+  expect(screen.getByRole('button', { name: /Layout on the sheet/ })).toHaveTextContent('1 per page · different images · fit · 5 mm margin') // folded, but says what is chosen
+  expect(screen.getByRole('button', { name: /Pictures on the sheets/ })).toHaveTextContent('1 picture → 1 sheet')
+  expect(screen.getByRole('button', { name: /Paper & orientation/ })).toHaveTextContent('A4 · Portrait')
+  expect(screen.queryByRole('radiogroup', { name: 'Images per page' })).toBeNull()
+  section(/Layout on the sheet/)
+  expect(screen.getByRole('radiogroup', { name: 'Images per page' })).toBeVisible()
+  section(/Paper & orientation/)
   expect(screen.getAllByRole('radiogroup', { name: 'Orientation' })).toHaveLength(1) // asked once, not in two places
   expect(screen.getByText('price here')).toBeInTheDocument()
+  section(/Pictures on the sheets/)
   expect(screen.getByRole('checkbox', { name: /passport\.png/ })).toBeDisabled()
 })
 
@@ -83,8 +91,10 @@ test('the size cannot go outside 20%-400%', () => {
 
 test('double-sided: each sheet is placed on its own and the side is named', () => {
   setup({ ...DEFAULT_SETTINGS, duplex: true })
-  fireEvent.click(screen.getAllByRole('radio', { name: '1' })[0])
+  section(/Pictures on the sheets/)
   fireEvent.click(screen.getByRole('checkbox', { name: 'photo.jpg' }))
+  section(/Layout on the sheet/)
+  fireEvent.click(screen.getByRole('radio', { name: '1' }))
   expect(screen.getAllByText(/this is the front side/).length).toBeGreaterThan(0)
   expect(screen.getByText(/sheet 1 prints on the front and sheet 2 on the back/)).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Next sheet' }))
@@ -96,7 +106,8 @@ test('double-sided: each sheet is placed on its own and the side is named', () =
 
 test('copies of one picture share one position', () => {
   const { onEdits } = setup()
-  fireEvent.click(screen.getAllByRole('radio', { name: '4' })[0])
+  section(/Layout on the sheet/)
+  fireEvent.click(screen.getByRole('radio', { name: '4' }))
   fireEvent.click(screen.getByRole('radio', { name: 'Copies of each image' }))
   const cells = screen.getAllByRole('button', { name: /^Place passport\.png/ })
   fireEvent.keyDown(cells[0], { key: 'ArrowLeft' })
@@ -106,7 +117,9 @@ test('copies of one picture share one position', () => {
 
 test('the images list and the print options keep working', () => {
   const { onEdits, setSettings } = setup()
-  fireEvent.click(screen.getAllByRole('radio', { name: '2' })[0])
+  section(/Layout on the sheet/)
+  fireEvent.click(screen.getByRole('radio', { name: '2' }))
+  section(/Pictures on the sheets/)
   fireEvent.click(screen.getByRole('checkbox', { name: 'photo.jpg' }))
   fireEvent.click(screen.getByRole('checkbox', { name: 'scan.png' }))
   expect(screen.getAllByText('3 images → 2 sheets').length).toBeGreaterThan(0)

@@ -37,8 +37,9 @@ return [
     ],
 
     'conversion' => [
-        // 'libreoffice' runs soffice --headless; 'none' marks Office files as unconvertible; 'fake' is tests only.
-        'driver' => env('CONVERSION_DRIVER', 'libreoffice'),
+        // Word/Excel/PowerPoint are turned into PDF in the customer's browser, so the server needs nothing by default ('none').
+        // 'libreoffice' (optional) runs soffice --headless on the server as well; 'fake' is tests only.
+        'driver' => env('CONVERSION_DRIVER', 'none'),
         'soffice_path' => env('SOFFICE_PATH', 'soffice'),
         'timeout_seconds' => (int) env('CONVERSION_TIMEOUT', 90),
         'max_attempts' => 3,

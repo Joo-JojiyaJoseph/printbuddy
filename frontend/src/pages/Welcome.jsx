@@ -24,12 +24,12 @@ export default function Welcome() {
         <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--hi)] px-3 py-1 text-sm font-bold text-[var(--muted)]"><Timer size={14} aria-hidden="true" />{mmss(left)} left</span>
       </div>
       <h1 className="mb-1 mt-4 text-[1.5rem] font-bold leading-[1.15] tracking-tight lg:text-[1.375rem]"><span className="lg:hidden">Print anything,<br />in seconds.</span><span className="hidden lg:inline">Let's get printing</span></h1>
-      <p className="mb-4 mt-1 text-[0.9375rem] text-[var(--muted)]">It takes four quick steps. No app to install.</p>
+      <p className="mb-4 mt-1 text-[1.0625rem] text-[var(--muted)]">It takes four quick steps. No app to install.</p>
       <ol className="stagger relative m-0 grid list-none gap-3 p-0">
         {STEPS.map(({ icon: Icon, title, text, tint }, i) => (
           <li key={title} className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-white p-3 shadow-[0_4px_14px_rgba(10,74,82,.06)] transition-transform hover:-translate-y-0.5">
             <span className={`grid size-11 flex-none place-items-center rounded-2xl bg-gradient-to-br text-white ${tint}`}><Icon size={22} aria-hidden="true" /></span>
-            <span className="min-w-0"><b className="block text-[0.9375rem]">{i + 1}. {title}</b><span className="text-[0.8125rem] text-[var(--muted)]">{text}</span></span>
+            <span className="min-w-0"><b className="block text-[1.0625rem]">{i + 1}. {title}</b><span className="text-[0.9375rem] text-[var(--muted)]">{text}</span></span>
           </li>
         ))}
       </ol>

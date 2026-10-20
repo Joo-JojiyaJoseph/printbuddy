@@ -1,7 +1,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import EditedPreview from './EditedPreview'
 import PageStrip from './PageStrip'
-import PositionPanel from './PositionPanel'
+import PositionPanel, { positionSummary } from './PositionPanel'
+import { MoveDiagonal } from 'lucide-react'
 import PreviewDock from './PreviewDock'
 import PrintSettingsForm from './PrintSettingsForm'
 import { usePdfDocument } from '../hooks/usePdfDocument'
@@ -60,10 +61,11 @@ export default function DocCustomize({ doc, settings, setSettings, edits, onEdit
         ) : <p className="m-0 text-xs text-[var(--muted)] md:hidden">Tap the preview to enlarge it.</p>}
       </PreviewDock>
 
-      <div className="min-w-0 space-y-4 max-md:mt-4">
+      <div className="min-w-0 space-y-3 max-md:mt-4">
         {assistant}
-        <PrintSettingsForm value={settings} onChange={({ edits: _e, ...rest }) => setSettings(rest)} rangeError={rangeError} pageCount={plan.length} showLayout />
-        {perSheet === 1 && <PositionPanel plan={plan} cur={cur} duplex={settings.duplex} apply={state.apply} />}
+        <PrintSettingsForm value={settings} onChange={({ edits: _e, ...rest }) => setSettings(rest)} rangeError={rangeError} pageCount={plan.length} showLayout
+          tail={perSheet === 1 ? [{ id: 'position', icon: MoveDiagonal, title: 'Position on paper', summary: positionSummary(plan, settings.duplex),
+            content: <PositionPanel plan={plan} cur={cur} duplex={settings.duplex} apply={state.apply} /> }] : []} />
         {!isIdentity(plan, doc.page_count) && <button type="button" onClick={state.reset} className="min-h-10 text-sm font-bold text-[var(--muted)] underline">Undo all page changes</button>}
         {tail}
       </div>

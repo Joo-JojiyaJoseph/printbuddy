@@ -8,15 +8,16 @@ Taprint has three parts. Only some fit shared hosting:
 | React website (the screens) | Yes. It is just static files. |
 | Laravel API + MySQL | Yes, if the host offers PHP 8.3+ and SSH/Terminal. |
 | **Printing to the kiosk's printer** | **No.** A server in a data centre cannot reach a printer in your shop. |
-| Word / Excel / PowerPoint / TXT conversion (LibreOffice) | Usually not installed on shared hosting. |
-| PDF editing marks, combining files (Poppler `pdftoppm`, `pdfunite`; or `qpdf` / Ghostscript) | Often missing. Ask the host. |
+| Word / Excel / PowerPoint to PDF | **Done in the customer's browser. Nothing to install on cPanel (no LibreOffice).** TXT is converted by PHP itself. |
+| Combining several files into one | **Done in the customer's browser** (no `pdfunite`, `qpdf` or Ghostscript needed). |
+| Poppler `pdftoppm` | Only the machine that actually prints needs it (the shop PC), not cPanel. |
 
-So with the API on cPanel, payments, uploads of PDF/pictures and pricing work, but **nothing prints** and some file types are refused
+So with the API on cPanel, payments, uploads (PDF, pictures, Word, Excel, PowerPoint, TXT) and pricing all work, but **nothing prints**
 until you add a small "print agent" program on the kiosk PC that fetches paid jobs and prints them (not included yet).
 Two setups that work today:
 
-* **A. Everything on the kiosk PC (simplest, prints now).** Windows PC with Laragon/XAMPP (PHP 8.3, MySQL), Poppler, LibreOffice,
-  SumatraPDF. Phones reach it over the shop Wi-Fi, or from anywhere through a free Cloudflare Tunnel. You may still host only the
+* **A. Everything on the kiosk PC (simplest, prints now).** Windows PC with Laragon/XAMPP (PHP 8.3, MySQL), Poppler,
+  SumatraPDF (no LibreOffice needed). Phones reach it over the shop Wi-Fi, or from anywhere through a free Cloudflare Tunnel. You may still host only the
   React website on cPanel.
 * **B. API on a VPS (not shared cPanel) near the kiosk.** Still needs the print agent for the printer.
 
@@ -25,14 +26,15 @@ If you still want the API on cPanel, follow the steps below.
 ## What to enable / install on the cPanel account
 1. **PHP 8.3 or newer**: cPanel → *MultiPHP Manager* (or *Select PHP Version*) → pick 8.3+ for the API domain.
 2. **PHP extensions** (same screen, tick them): `pdo_mysql`, `mbstring`, `fileinfo`, `iconv`, `dom` (xml), `curl`, `openssl`, `gd`, `zip`.
-3. **Allowed functions**: `proc_open` must NOT be in the disabled list (*MultiPHP INI Editor*, `disable_functions`). The app uses it to run converters.
+3. **Allowed functions**: `proc_open` must NOT be in the disabled list (*MultiPHP INI Editor*, `disable_functions`). The app uses it to run the printer and Poppler on the machine that prints.
 4. **MySQL**: cPanel → *MySQL Databases*: create a database, create a user, add the user to the database with ALL PRIVILEGES.
    cPanel prefixes names, e.g. `cpuser_printbuddy` and `cpuser_pbuser`.
 5. **SSH / Terminal** access (cPanel → *Terminal*) and **Composer**. If Composer is missing, run composer on your own PC
    (`composer install --no-dev --optimize-autoloader` with PHP 8.3) and upload the finished `vendor/` folder.
 6. **SSL**: *SSL/TLS Status* → run AutoSSL so both domains are https.
-7. Ask your host if these exist: `pdftoppm`, `pdfunite` (package *poppler-utils*), `qpdf`, `soffice` (LibreOffice). Shared hosts rarely install them.
-   If missing: set `CONVERSION_DRIVER=none` (Word/Excel/PowerPoint refused, PDF and pictures still work).
+7. **No LibreOffice, `pdfunite`, `qpdf` or Ghostscript is needed.** Keep `CONVERSION_DRIVER=none` in `.env` (the default). Word, Excel and
+   PowerPoint are turned into PDF in the customer's browser and files are combined there too. Old binary `.doc`/`.xls`/`.ppt` files
+   are not supported: the customer is asked to save them as `.docx`/`.xlsx`/`.pptx` or PDF.
 
 ## Upload and configure the API
 1. Create a sub-domain `api.yourdomain.com` (cPanel → *Domains*). **Set its document root to `printbuddy/backend/public`**
@@ -68,7 +70,7 @@ If you still want the API on cPanel, follow the steps below.
    PRINT_DRIVER=file                  # cPanel cannot reach your printer
    ```
    After any `.env` change: `php artisan config:clear && php artisan config:cache`.
-5. Razorpay webhook (now possible, you have a public https address): `https://api.yourdomain.com/api/v1/webhooks/razorpay`, event `qr_code.credited`.
+5. Razorpay webhook (now possible, you have a public https address): `https://api.yourdomain.com/api/v1/webhooks/razorpay`, events `qr_code.credited` and `order.paid`.
 6. No queue worker is needed (`QUEUE_CONNECTION=sync`). Expired files are cleaned lazily on requests.
 
 ## Upload the website

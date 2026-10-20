@@ -59,8 +59,11 @@ Built in: **Razorpay UPI QR**. You can enter the keys in the admin panel (**Admi
    ```
    Use `rzp_test_...` keys first to test.
 3. QR Codes must be enabled on your Razorpay account (Razorpay support enables the UPI QR product for you if it is missing).
+   The same keys also switch on the **Card, netbanking or wallet** button on the Pay page (Razorpay Checkout). For that, keep
+   *Settings → Payment capture* on **automatic** in the Razorpay dashboard, otherwise payments stay "authorized" and the order is
+   not marked paid.
 4. Optional but recommended: Webhook. Dashboard → *Webhooks* → add `https://YOUR-PUBLIC-URL/api/v1/webhooks/razorpay`, secret =
-   `RAZORPAY_WEBHOOK_SECRET`, event **qr_code.credited**. This needs a public https address. On a kiosk PC without one,
+   `RAZORPAY_WEBHOOK_SECRET`, events **qr_code.credited** and **order.paid**. This needs a public https address. On a kiosk PC without one,
    skip it: the customer's screen asks Razorpay directly every few seconds, and the order is marked paid only after Razorpay confirms
    the exact amount. (A tunnel such as Cloudflare Tunnel or ngrok gives you a public URL if you want webhooks.)
 5. `php artisan config:clear`, restart the server, and make one real small payment to test.

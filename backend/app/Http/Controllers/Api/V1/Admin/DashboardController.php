@@ -30,6 +30,7 @@ class DashboardController extends Controller
             'documents_on_disk' => Document::query()->whereNull('deleted_at')->count(),
             'storage_bytes' => (int) Document::query()->whereNull('deleted_at')->sum('size_bytes'),
             'conversion_available' => $converter->available(),
+            'conversion_driver' => config('printbuddy.conversion.driver'),
             'payment_provider' => app(\App\Support\Integrations::class)->paymentProvider(),
             'orders_by_status' => PrintOrder::query()->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status'),
         ]]);

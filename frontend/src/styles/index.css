@@ -11,11 +11,11 @@
   --color-coral-deep: #D6401F;
   --color-danger: #d9344a;
   --color-amber: #d97706;
-  --font-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   --radius-card: 22px;
   /* Professional type scale: 16px base, 14px body, 12px captions. Headings 20-28px. */
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
   --radius-btn: 999px;
   --animate-enter: enter .45s cubic-bezier(.2,.9,.2,1) both;
   --animate-float: float 4s ease-in-out infinite;
@@ -29,6 +29,9 @@
   --animate-gradient: gradient 6s ease infinite;
   --animate-draw: draw .6s .15s ease-out both;
   --animate-fall: fall 2.6s ease-in both;
+  --animate-feed: feed 2.4s cubic-bezier(.4,0,.2,1) infinite;
+  --animate-bob: bob 2.2s ease-in-out infinite;
+  --animate-ripple: ripple 1.8s ease-out infinite;
 }
 
 /* Light, airy theme: white cards on a pastel indigo / sky / lilac wash. Text is deep navy for strong contrast. */
@@ -41,7 +44,9 @@
 
 /* Big screens: everything is rem-based. The root size and the content width grow smoothly with the screen from about 1600px up
    (17px at 1920, 20px at 2560, 26px at 4K), so text, buttons and cards scale together and nothing floats in empty space. */
-html { font-size: max(100%, calc(16px + (100vw - 1600px) * 0.0045)); }
+html { font-size: max(106.25%, calc(17px + (100vw - 1600px) * 0.0045)); }                     /* phones: 17px */
+@media (min-width: 768px) { html { font-size: max(112.5%, calc(18px + (100vw - 1600px) * 0.0045)); } } /* tablets and up: 18px */
+html.is-admin { font-size: max(100%, calc(16px + (100vw - 1600px) * 0.0045)); }                 /* the staff panel keeps its compact size */
 :root { --shell: min(max(77.5rem, 68vw), 130rem); }
 html { overflow-x: clip; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 /* Long file names, codes or URLs wrap instead of pushing a card or popup wider than the screen. */
@@ -67,6 +72,9 @@ body {
 @keyframes enter { from { opacity: 0; transform: translateY(18px) scale(.98); } }
 @keyframes float { 50% { transform: translateY(-14px) rotate(3deg); } }
 @keyframes drift { to { transform: translate(7%, 9%) scale(1.15); } }
+@keyframes feed { 0% { transform: translateY(0); } 55% { transform: translateY(var(--feed, 30px)); } 100% { transform: translateY(var(--feed, 30px)); } }
+@keyframes bob { 50% { transform: translateY(-6px); } }
+@keyframes ripple { from { transform: scale(.6); opacity: .5; } to { transform: scale(1.6); opacity: 0; } }
 @keyframes pulse-ring { 50% { box-shadow: 0 0 0 14px rgba(10,74,82,.18), 0 20px 50px rgba(10,74,82,.2); } }
 
 :focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }

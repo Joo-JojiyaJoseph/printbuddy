@@ -45,7 +45,7 @@ export default function Review() {
           <dl className="m-0 mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {describeSettings(settings).map(([k, v]) => (
               <div key={k} className="rounded-2xl bg-[var(--hi)] px-3 py-2">
-                <dt className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">{k}</dt><dd className="m-0 text-[0.9375rem] font-bold">{v}</dd>
+                <dt className="text-sm font-semibold text-[var(--muted)]">{k}</dt><dd className="m-0 text-base font-bold leading-snug">{v}</dd>
               </div>
             ))}
           </dl>

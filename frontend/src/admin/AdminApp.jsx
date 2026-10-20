@@ -101,6 +101,7 @@ function Shell({ user, onLogout }) {
 export default function AdminApp() {
   const [user, setUser] = useState(undefined) // undefined = checking
   const navigate = useNavigate()
+  useEffect(() => { document.documentElement.classList.add('is-admin'); return () => document.documentElement.classList.remove('is-admin') }, [])
   useEffect(() => {
     if (!tokenStore.get()) { setUser(null); return }
     adminApi.me().then(setUser).catch(() => { tokenStore.set(null); setUser(null) })

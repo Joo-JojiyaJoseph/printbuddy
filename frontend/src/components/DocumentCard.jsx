@@ -22,7 +22,7 @@ export default function DocumentCard({ doc, selected, selectable, order, onSelec
           {selected ? (order ? <span className="text-base font-bold" aria-label={`Number ${order}`}>{order}</span> : <Check size={22} strokeWidth={3} aria-hidden="true" />) : <Icon aria-hidden="true" size={22} />}
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-[0.9375rem] font-bold">{doc.original_name}</span>
+          <span className="block truncate text-[1.0625rem] font-bold">{doc.original_name}</span>
           <span className="block text-xs text-[var(--muted)]">
             {formatBytes(doc.size_bytes)} ·{' '}
             {doc.status === 'ready' && `${doc.page_count} ${doc.page_count === 1 ? 'page' : 'pages'}`}

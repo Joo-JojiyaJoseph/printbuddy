@@ -6,10 +6,10 @@ import { ACCEPT } from '../utils/fileValidation'
 export default function UploadZone({ onFiles, disabled = false, compact = false }) {
   const [over, setOver] = useState(false)
   const pick = (list) => { if (list?.length) onFiles(Array.from(list)) }
-  const quick = `flex min-h-14 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-white px-3 text-[0.9375rem] font-bold shadow-sm transition-colors hover:bg-[var(--hi)] focus-within:outline focus-within:outline-[3px] focus-within:outline-accent ${disabled ? 'opacity-50' : ''}`
+  const quick = `flex min-h-14 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-white px-3 text-[1.0625rem] font-bold shadow-sm transition-colors hover:bg-[var(--hi)] focus-within:outline focus-within:outline-[3px] focus-within:outline-accent ${disabled ? 'opacity-50' : ''}`
   if (compact) {
     // Files are already added: one tidy row instead of a big drop area.
-    const c = `flex min-h-[4rem] flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl border border-[var(--border)] bg-white px-2 text-[0.8125rem] font-bold shadow-sm transition-colors hover:bg-[var(--hi)] focus-within:outline focus-within:outline-[3px] focus-within:outline-accent ${disabled ? 'opacity-50' : ''}`
+    const c = `flex min-h-[4rem] flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl border border-[var(--border)] bg-white px-2 text-[0.9375rem] font-bold shadow-sm transition-colors hover:bg-[var(--hi)] focus-within:outline focus-within:outline-[3px] focus-within:outline-accent ${disabled ? 'opacity-50' : ''}`
     return (
       <div className="flex gap-2.5">
         <label className={c}><FolderOpen size={22} aria-hidden="true" className="text-accent-2" />Add files
@@ -30,11 +30,14 @@ export default function UploadZone({ onFiles, disabled = false, compact = false 
         onDragOver={(e) => { e.preventDefault(); setOver(true) }}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); if (!disabled) pick(e.dataTransfer.files) }}
-        className={`flex min-h-[14.375rem] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[26px] border-2 border-dashed p-6 text-center transition-colors focus-within:outline focus-within:outline-[3px] focus-within:outline-accent ${
+        className={`flex min-h-[15.5rem] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[26px] border-2 border-dashed p-6 text-center transition-colors focus-within:outline focus-within:outline-[3px] focus-within:outline-accent ${
           over ? 'border-accent bg-[#e3f3f3]' : 'border-[#86cbd0] bg-[#f6fbfb]'} ${disabled ? 'opacity-50' : ''}`}>
-        <CloudUpload aria-hidden="true" size={56} strokeWidth={1.6} className="text-accent-2" />
-        <span className="mt-1 text-lg font-bold">Drop your files here</span>
-        <span className="text-[0.9375rem]">or tap to browse</span>
+        <span className="relative grid size-20 place-items-center">
+          <i aria-hidden="true" className={`absolute inset-0 rounded-full bg-accent/25 ${over ? 'animate-ripple' : ''}`} />
+          <CloudUpload aria-hidden="true" size={60} strokeWidth={1.6} className={`relative text-accent-2 ${over ? '' : 'animate-bob'}`} />
+        </span>
+        <span className="mt-1 text-xl font-extrabold">Drop your files here</span>
+        <span className="text-[1.0625rem]">or tap to browse</span>
         <span className="mt-1 text-xs text-[var(--muted)]">PDF, photos, Word, Excel, PowerPoint</span>
         <span className="mt-3 inline-flex min-h-12 items-center gap-2 rounded-full bg-gradient-to-r from-accent to-accent-2 px-7 text-base font-bold text-white shadow-[0_10px_26px_rgba(10,74,82,.3)]">
           <FolderOpen size={20} aria-hidden="true" /> Choose files

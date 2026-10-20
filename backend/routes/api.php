@@ -74,6 +74,8 @@ Route::middleware('qr.session')->prefix('v1')->group(function () {
     Route::post('/orders/{reference}/cancel', [OrderController::class, 'cancel']);
     Route::post('/orders/{reference}/payment', [PaymentController::class, 'store'])->middleware('throttle:order');
     Route::get('/orders/{reference}/payment', [PaymentController::class, 'show']);
+    Route::post('/orders/{reference}/payment/checkout', [PaymentController::class, 'checkout'])->middleware('throttle:order');
+    Route::post('/orders/{reference}/payment/confirm', [PaymentController::class, 'confirm'])->middleware('throttle:order');
 
     // Fake-provider demo controls; the controller returns 404 unless PAYMENT_PROVIDER=fake.
     Route::post('/orders/{reference}/sandbox/simulate', [SandboxController::class, 'simulate']);

@@ -57,7 +57,7 @@ Flow: Upload → **Edit** → Print settings → Review → Pay. The Edit step d
 - Edits travel as `settings.edits` (see `docs/openapi.yaml`). The server validates them against the real document
   (`PagePlan`) and derives the billable page count itself; `page_range` then selects among the output pages.
   Pages the customer adds as blanks are billed. A client cannot submit a page count or a price.
-- Word: LibreOffice converts to HTML and back (`OfficeHtmlBridge`). **PDF text editing is lossy**: the text is read out
+- Word "Edit text" is no longer in the customer screens; the optional server code (needs LibreOffice) remains: LibreOffice converts to HTML and back (`OfficeHtmlBridge`). **PDF text editing is lossy**: the text is read out
   of the PDF (`PdfTextExtractor`) and the pages are rebuilt from it, so pictures and exact layout are not kept, and
   scanned PDFs (no text) are refused with a clear message. Excel/PowerPoint get page edits only.
 - All edited HTML passes a whitelist sanitiser (`HtmlSanitizer`: no scripts, handlers, external resources; only small
@@ -83,11 +83,14 @@ Marks never change the price. The old "Edit text" (rebuild) is kept for Word/TXT
 The first phone to scan owns the session (a random id stored in that phone's browser; only its hash is kept on the
 server). Another phone opening the same code sees "This QR code is in use" (HTTP 423) until the session ends, expires
 or is cancelled with **Cancel this session** on the kiosk screen (which then shows a fresh code). Run `php artisan migrate`.
-Combining files uses `pdfunite` (Poppler), else `qpdf`, else Ghostscript; install any one of them on the kiosk PC.
+Combining files happens in the customer's browser (pdf-lib), so no `pdfunite`, `qpdf` or Ghostscript is needed.
 
 ## Security checklist (what is in place)
 - **Sessions:** 48-character random token, only its SHA-256 is stored; time-limited; revocable; one phone per QR code (HTTP 423 for others).
 - **Payments and prices:** decided by the server only; a client can never send a price or mark an order paid; webhooks are signature-checked.
+  The Pay page offers the UPI QR and, with Razorpay, a **Card, netbanking or wallet** window (Razorpay Checkout): the server creates the
+  Razorpay order with the exact total, checks the window's signature, then asks Razorpay whether the money arrived. Paying one way
+  closes the other attempt.
 - **Uploads:** type is detected from the file's content (not its name), size and count limits, conversion in a time-limited process with no shell.
 - **Edited text** is passed through a whitelist HTML sanitiser and shown in a sandboxed iframe. Overlay marks are validated and clamped by the server.
 - **Privacy:** files are scheduled for deletion after printing (`PRINT_ERASE_MINUTES`) and when a session expires.
@@ -134,8 +137,9 @@ The smart assistant suggests "2 per sheet" for wide, slide-like documents.
 - **No queue worker is needed.** Files are prepared inside the upload request (Word/Excel/PowerPoint can take up to a
   minute the first time while LibreOffice starts) and printing runs right after the payment is verified. Just run
   `php artisan serve` (and `npm run dev`). Keep `QUEUE_CONNECTION=sync` in `.env` (the new default).
-- LibreOffice must be installed for Word/Excel/PowerPoint previews and for "Edit text" (set `SOFFICE_PATH` if it is not
-  found). Poppler is needed for printing edited files.
+- Word/Excel/PowerPoint are converted to PDF **in the customer's browser** (docx-preview, pptx-preview, ExcelJS, html2canvas and pdf-lib,
+  loaded only when such a file is picked), so the server needs no LibreOffice (`CONVERSION_DRIVER=none`, the default). The layout is close
+  to, not identical to, what Office prints. Poppler is needed on the machine that prints edited files.
 - **"No pricing rule for …"**: missing rates now fall back to built-in defaults (A4 ₹2/₹8, A5 ₹1.50/₹6, Letter ₹2/₹8
   per side, B/W/colour); `php artisan migrate` also stores them so admins can edit them. An admin can switch a rate off.
 - `.jfif` / `.jpe` photos are accepted as JPEG; a JPEG/PNG with an unfamiliar extension is accepted by its content.
@@ -145,8 +149,9 @@ The smart assistant suggests "2 per sheet" for wide, slide-like documents.
   on every request). The app now also waits up to 10 s for the lock and uses WAL mode. Stop any old
   `php artisan queue:work` window. Then run `php artisan config:clear`.
 - **Several files at once**: tick the files on the Upload step. Pictures go onto shared sheets (e.g. 2 to a page);
-  documents or a mix are combined into one PDF (Poppler `pdfunite`; set `PDFUNITE_PATH` if it is not on PATH) so they
-  share one order and one payment.
+  documents or a mix are combined into one PDF **in the customer's browser** (pictures become one A4 page each) and uploaded as
+  "Combined (N files).pdf", so they share one order and one payment. The server-side `/documents/merge` (pdfunite/qpdf/Ghostscript)
+  is kept only as an optional fallback.
 - The Preview step follows paper size, orientation, colour, sides (front/back sheet) and scaling (fit / fill / actual size).
 - **"Could not display this document" / "Edit text" errors**: the browser console (F12) shows the real reason.
 

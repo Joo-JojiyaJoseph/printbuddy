@@ -30,7 +30,17 @@ export default function Upload() {
     }
     setBusy(true) // documents (or a mix) are combined into ONE PDF so they share one order and one payment
     try {
-      const merged = await api.mergeDocuments(token, chosen.map((d) => d.id))
+      // Joined in this browser, then sent as one ordinary PDF: the server needs no PDF tools for it.
+      const { mergeInBrowser } = await import('../utils/mergeInBrowser')
+      const { file } = await mergeInBrowser(chosen)
+      const sent = await api.uploadDocument(token, file)
+      let merged = sent
+      for (let i = 0; i < 40 && merged.status !== 'ready'; i++) { // the server checks the new PDF first; wait for it
+        if (merged.status === 'failed') throw new Error(merged.failure_reason || 'The combined file could not be prepared.')
+        await new Promise((r) => setTimeout(r, 750))
+        merged = (await api.listDocuments(token)).find((d) => d.id === sent.id) ?? merged
+      }
+      if (merged.status !== 'ready') throw new Error('The combined file is taking too long to prepare. Try again in a moment.')
       await refresh()
       setPickedIds([])
       navigate(`/s/${token}/edit/${merged.id}`)
@@ -56,9 +66,9 @@ export default function Upload() {
               </div>
               {u.error
                 ? <p role="alert" className="m-0 mt-1 text-sm text-danger">{u.error}</p>
-                : <div role="progressbar" aria-valuenow={u.progress} aria-valuemin={0} aria-valuemax={100} aria-label={`Uploading ${u.name}`} className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--border)]">
+                : <><p role="status" className="m-0 mt-1 text-xs text-[var(--muted)]">{u.note}</p><div role="progressbar" aria-valuenow={u.progress} aria-valuemin={0} aria-valuemax={100} aria-label={`${u.note ? 'Preparing' : 'Uploading'} ${u.name}`} className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--border)]">
                     <i className="block h-full rounded-full bg-gradient-to-r from-primary to-accent transition-[width] duration-300" style={{ width: `${u.progress}%` }} />
-                  </div>}
+                  </div></>}
             </Card>
           </li>
         ))}

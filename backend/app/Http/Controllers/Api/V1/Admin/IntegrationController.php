@@ -105,7 +105,8 @@ class IntegrationController extends Controller
         $result = (new RazorpayProvider($rz['key_id'], $rz['key_secret'], $rz['webhook_secret'], $rz['base_url'], 900))->ping();
         $this->audit->log('integrations.payment_tested', 'Integrations', ['ok' => $result['ok']]);
 
-        return response()->json(['data' => $result], $result['ok'] ? 200 : 502);
+        // On failure the reason must also be a top-level `message`: that is the field the admin screen shows.
+        return response()->json($result['ok'] ? ['data' => $result] : ['message' => $result['message'], 'data' => $result], $result['ok'] ? 200 : 502);
     }
 
     private function payload(): array
@@ -123,7 +124,7 @@ class IntegrationController extends Controller
                 'key_secret_set' => $rz['key_secret'] !== '',
                 'webhook_secret_set' => $rz['webhook_secret'] !== '',
                 'webhook_url' => url('/api/v1/webhooks/razorpay'),
-                'webhook_event' => 'qr_code.credited',
+                'webhook_event' => 'qr_code.credited and order.paid',
                 'production' => app()->environment('production'),
             ],
             'printing' => [

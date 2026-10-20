@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { CheckCircle2, Loader2, Printer, ShieldCheck, TriangleAlert } from 'lucide-react'
 import Confetti from '../components/Confetti'
+import PrintArt from '../components/PrintArt'
 import CustomerLayout from '../layouts/CustomerLayout'
 import Card from '../components/ui/Card'
 import QuoteCard from '../components/QuoteCard'
@@ -68,12 +69,10 @@ export default function Done() {
     <CustomerLayout step={5} title="Order confirmed">
       <div className="mx-auto max-w-2xl">
         <div className="text-center">
-          {!failed && <Confetti />}
-          <div aria-hidden="true" className="mx-auto my-3 grid size-24 place-items-center rounded-full bg-gradient-to-br from-mint to-[#36d6a0] text-white shadow-[0_16px_40px_rgba(18,166,121,.4)] animate-pop">
-            <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" strokeDasharray="48" className="animate-draw" /></svg>
-          </div>
-          <h1 className="m-0 text-xl font-bold leading-tight">{failed ? 'Paid · Printing needs help' : 'Payment received'}</h1>
-          <p className="mb-4 mt-1 text-sm text-[var(--muted)]">Order <b data-testid="order-ref">{order.reference}</b></p>
+          {printStatus === 'sent' && <Confetti />}
+          <div className="my-2"><PrintArt state={failed ? 'failed' : printStatus === 'sent' ? 'sent' : 'printing'} /></div>
+          <h1 className="m-0 text-2xl font-extrabold leading-tight tracking-tight md:text-3xl">{failed ? 'Paid · Printing needs help' : 'Payment received'}</h1>
+          <p className="mb-4 mt-1 text-base text-[var(--muted)]">Order <b data-testid="order-ref">{order.reference}</b></p>
         </div>
         <PrintStatus print={order.print} />
         {order.print?.status === 'sent' && (
@@ -87,7 +86,7 @@ export default function Done() {
             <p className="m-0 flex items-center gap-2 truncate font-bold"><Printer aria-hidden="true" size={16} className="shrink-0" />{order.document.name}</p>
             <dl className="m-0 mt-2">
               {describeSettings(order.settings).map(([k, v]) => (
-                <div key={k} className="flex justify-between border-b border-dashed border-[var(--border)] py-2 text-[0.9375rem] last:border-0">
+                <div key={k} className="flex justify-between border-b border-dashed border-[var(--border)] py-2 text-[1.0625rem] last:border-0">
                   <dt className="text-[var(--muted)]">{k}</dt><dd className="m-0 font-bold">{v}</dd>
                 </div>
               ))}

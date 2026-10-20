@@ -26,7 +26,7 @@ Without that the panel runs on built-in demo data (`admin@taprint.test` / `demo-
 ## 2. What each screen does
 | Screen | Use |
 |---|---|
-| Dashboard | Today's revenue and orders, warnings (failed prints, payments to review, sandbox payments, missing LibreOffice) |
+| Dashboard | Today's revenue and orders, warnings (failed prints, payments to review, sandbox payments, LibreOffice missing, only when `CONVERSION_DRIVER=libreoffice`) |
 | Orders | Search/filter every order; open one to see settings and payments; **Retry print** after a failed print; cancel an unpaid order |
 | Payments | Payment list; **Re-check** asks the provider for the real status. There is no "mark as paid" button on purpose |
 | QR sessions | See and end customer sessions |
@@ -40,7 +40,7 @@ Without that the panel runs on built-in demo data (`admin@taprint.test` / `demo-
 
 ## 3. Payment gateway and printer: set up in the panel, no `.env` editing
 **Payment gateway** (admin only): choose Razorpay, paste the Key ID and Key Secret, press *Generate* for the webhook secret, **Save**, then **Test connection**.
-The screen also shows the webhook URL and the event to tick (`qr_code.credited`) for Razorpay's dashboard.
+The screen also shows the webhook URL and the events to tick (`qr_code.credited` for the UPI QR, `order.paid` for the card / netbanking window) for Razorpay's dashboard.
 - Secrets are encrypted with the server's `APP_KEY` before they are stored and are never sent back to the browser: the screen only shows "saved". Type a new value to replace one; leave it empty to keep it.
 - Razorpay cannot be selected until the Key ID and Key Secret exist. The webhook secret is optional (see below).
 - **Webhook secret:** Razorpay signs every webhook it sends with this text; the server checks the signature and ignores anything that does not match, so nobody can fake a "payment received" message. You make it up yourself, enter the same text here and in Razorpay's webhook form, and it is not the Key Secret. Skip it on a local PC: Razorpay cannot reach a local address anyway, and the customer's screen checks with Razorpay every few seconds.
