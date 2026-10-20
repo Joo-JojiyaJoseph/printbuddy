@@ -38,7 +38,7 @@ export default function CustomerLayout({ step = 0, title, hint, children, footer
               <StepProgress current={step} />
               {title && title !== 'Taprint' && (
                 <div className="mt-4 flex items-center gap-3">
-                  <span className="tile3d grid size-12 flex-none place-items-center rounded-2xl bg-gradient-to-br from-accent to-accent-2 text-white"><Icon size={24} aria-hidden="true" /></span>
+                  <span className="tile3d grid size-10 flex-none place-items-center rounded-2xl bg-gradient-to-br from-accent to-accent-2 text-white sm:size-12"><Icon size={22} aria-hidden="true" /></span>
                   <div className="min-w-0">
                     <h2 className="m-0 text-xl font-extrabold leading-tight tracking-tight md:text-2xl">{title}</h2>
                     {hint && <p className="m-0 mt-0.5 text-base leading-snug text-[var(--muted)]">{hint}</p>}

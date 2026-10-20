@@ -46,8 +46,9 @@
 
 /* Big screens: everything is rem-based. The root size and the content width grow smoothly with the screen from about 1600px up
    (17px at 1920, 20px at 2560, 26px at 4K), so text, buttons and cards scale together and nothing floats in empty space. */
-html { font-size: max(100%, calc(16px + (100vw - 1600px) * 0.0045)); }                     /* phones: 16px */
-@media (min-width: 768px) { html { font-size: max(100%, calc(16px + (100vw - 1600px) * 0.0045)); } } /* tablets and up: 16px */
+html { font-size: 14.5px; }                                                                        /* phones: compact, so more fits on the screen */
+@media (min-width: 400px) { html { font-size: 15px; } }
+@media (min-width: 640px) { html { font-size: max(100%, calc(16px + (100vw - 1600px) * 0.0045)); } } /* tablets and up: 16px */
 html.is-admin { font-size: max(100%, calc(16px + (100vw - 1600px) * 0.0045)); }                 /* the staff panel keeps its compact size */
 :root { --shell: min(max(77.5rem, 68vw), 130rem); }
 html { overflow-x: clip; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }

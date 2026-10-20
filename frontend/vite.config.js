@@ -19,7 +19,10 @@ export default defineConfig({
   preview: { headers: { ...base, 'Content-Security-Policy': csp } },
   // Pre-bundle everything up front so Vite never re-optimises mid-session (that made pages go blank until a hard refresh).
   optimizeDeps: { include: ['react', 'react-dom', 'react-dom/client', 'react-router-dom', 'lucide-react', 'qrcode.react', 'pdfjs-dist/legacy/build/pdf.mjs'] },
-  build: { target: 'es2022', modulePreload: { resolveDependencies: (_f, deps) => deps.filter((d) => !/\/pdf-/.test(d)) }, chunkSizeWarningLimit: 600, rollupOptions: { output: { manualChunks(id) {
+  build: { target: 'es2022', modulePreload: { resolveDependencies: (_f, deps) => deps.filter((d) => !/\/pdf-/.test(d)) }, chunkSizeWarningLimit: 600, rollupOptions: { output: {
+    // Some Apache/cPanel servers send .mjs files as a download type, and browsers refuse to run such a worker (PDF previews go blank). A .js name is always served correctly.
+    assetFileNames: (a) => ((a.names?.[0] ?? a.name ?? '').endsWith('.mjs') ? 'assets/[name]-[hash].js' : 'assets/[name]-[hash][extname]'),
+    manualChunks(id) {
     if (id.includes('pdfjs-dist')) return 'pdf'
     if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) return 'react'
     if (id.includes('lucide-react') || id.includes('qrcode.react')) return 'ui'
