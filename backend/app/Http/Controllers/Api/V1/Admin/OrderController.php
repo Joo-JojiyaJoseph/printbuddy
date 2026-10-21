@@ -80,7 +80,7 @@ class OrderController extends Controller
         return response()->json(['data' => $this->summary($o->load(['document', 'session.kiosk', 'latestPayment', 'printJob']))]);
     }
 
-    private function summary(PrintOrder $o): array
+    public static function summary(PrintOrder $o): array
     {
         return [
             'reference' => $o->reference,

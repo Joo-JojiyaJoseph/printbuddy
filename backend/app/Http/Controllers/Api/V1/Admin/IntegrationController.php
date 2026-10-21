@@ -43,8 +43,8 @@ class IntegrationController extends Controller
 
         $errors = [];
         foreach (array_keys(IntegrationRules::BINARIES) as $field) {
-            // The shop PC prints in agent mode, so server-side printer program paths are not used (and not checked).
-            if (($d['print_driver'] ?? null) === 'agent' && in_array($field, ['sumatra_path', 'lp_path'], true)) {
+            // In shop-PC mode printing and Poppler run on the shop PCs, so server-side program paths are not used (and not checked).
+            if (($d['print_driver'] ?? null) === 'agent') {
                 continue;
             }
             if (isset($d[$field]) && ($e = IntegrationRules::binaryError($field, (string) $d[$field])) !== null) {

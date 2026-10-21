@@ -90,6 +90,7 @@ Route::middleware(['agent.key', 'throttle:300,1'])->prefix('v1/agent')->group(fu
     Route::get('/ping', [\App\Http\Controllers\Api\V1\AgentController::class, 'ping']);
     Route::post('/jobs/next', [\App\Http\Controllers\Api\V1\AgentController::class, 'next']);
     Route::get('/jobs/{id}/file', [\App\Http\Controllers\Api\V1\AgentController::class, 'file']);
+    Route::put('/jobs/{id}/pages/{n}', [\App\Http\Controllers\Api\V1\AgentController::class, 'page'])->whereNumber('n');
     Route::post('/jobs/{id}/result', [\App\Http\Controllers\Api\V1\AgentController::class, 'result']);
 });
 
@@ -113,6 +114,7 @@ Route::prefix('v1/admin')->group(function () {
         Route::get('/reports/sales', [Admin\ReportController::class, 'sales']);
         Route::get('/reports/orders.csv', [Admin\ReportController::class, 'ordersCsv'])->middleware('throttle:heavy');
         Route::get('/kiosks', [Admin\KioskController::class, 'index']);
+        Route::get('/kiosks/{code}', [Admin\KioskController::class, 'show']);
         Route::get('/audit', [Admin\AuditController::class, 'index']);
     });
 
@@ -132,6 +134,7 @@ Route::prefix('v1/admin')->group(function () {
         Route::put('/integrations', [Admin\IntegrationController::class, 'update']);
         Route::post('/integrations/payment/test', [Admin\IntegrationController::class, 'testPayment'])->middleware('throttle:heavy');
         Route::post('/kiosks', [Admin\KioskController::class, 'store']);
+        Route::post('/kiosks/{id}/agent-setup', [Admin\KioskController::class, 'agentSetup'])->middleware('throttle:heavy');
         Route::post('/kiosks/{id}/agent-key', [Admin\KioskController::class, 'agentKey'])->middleware('throttle:heavy');
         Route::put('/kiosks/{id}', [Admin\KioskController::class, 'update']);
         Route::get('/users', [Admin\UserController::class, 'index']);

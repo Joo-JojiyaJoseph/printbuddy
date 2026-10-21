@@ -6,6 +6,20 @@ export const SUMATRA_GUESSES = [
   'C:\\Program Files (x86)\\SumatraPDF\\SumatraPDF.exe',
 ]
 
+export const POPPLER_GUESSES = [
+  'C:\\poppler\\Library\\bin\\pdftoppm.exe',
+  'C:\\Program Files\\poppler\\Library\\bin\\pdftoppm.exe',
+  'C:\\Program Files\\poppler\\bin\\pdftoppm.exe',
+]
+
+/** Arguments to render one PDF page to a JPEG picture (same options the server used). */
+export function pdftoppmArgs(pdfPath, page, dpi, gray, prefix) {
+  const p = Math.trunc(Number(page))
+  const r = Math.min(600, Math.max(72, Math.trunc(Number(dpi)) || 300))
+  if (!Number.isFinite(p) || p < 1 || p > 100000) throw new Error('bad page number')
+  return ['-r', String(r), '-f', String(p), '-l', String(p), '-jpeg', '-jpegopt', 'quality=92', ...(gray ? ['-gray'] : []), pdfPath, prefix]
+}
+
 /** Checks config.json and returns { config, problems }. Nothing is printed here. */
 export function checkConfig(raw, exists = existsSync) {
   const problems = []
@@ -18,8 +32,10 @@ export function checkConfig(raw, exists = existsSync) {
   let sumatra = String(c.sumatraPath || '').trim()
   if (!sumatra) sumatra = SUMATRA_GUESSES.find((p) => exists(p)) || ''
   if (!sumatra || !exists(sumatra)) problems.push('SumatraPDF.exe was not found. Install SumatraPDF, or put its full path in "sumatraPath".')
+  let poppler = String(c.popplerPath || '').trim()
+  if (!poppler) poppler = POPPLER_GUESSES.find((p) => exists(p)) || ''
   const poll = Number(c.pollSeconds)
-  return { config: { ...c, server: url, key: String(c.key || '').trim(), sumatraPath: sumatra, pollSeconds: Number.isFinite(poll) ? Math.min(30, Math.max(1, poll)) : 2, printerName: String(c.printerName || '').trim() }, problems }
+  return { config: { ...c, server: url, key: String(c.key || '').trim(), sumatraPath: sumatra, popplerPath: poppler, pollSeconds: Number.isFinite(poll) ? Math.min(30, Math.max(1, poll)) : 2, printerName: String(c.printerName || '').trim() }, problems }
 }
 
 /** Arguments for SumatraPDF, same meaning as the server's own Sumatra driver. */

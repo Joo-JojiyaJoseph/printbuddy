@@ -40,7 +40,10 @@ class OrderResource extends JsonResource
         $message = match ($status) {
             'sent' => 'Sent to the printer. Collect your pages from the tray.',
             'failed' => "We couldn't print this automatically. You have been charged, so please ask the attendant and quote your order reference.",
-            default => 'Preparing your pages for the printer…',
+            'sending' => 'Your pages are being printed right now.',
+            'waiting' => 'Payment received. Waiting for the shop printer to pick up your job. This usually takes a few seconds.',
+            'preparing' => 'Payment received. Preparing your pages for the printer…',
+            default => 'Payment received. Your job is in the print queue…',
         };
 
         $erase = $status === 'sent' ? $this->document?->delete_after : null;

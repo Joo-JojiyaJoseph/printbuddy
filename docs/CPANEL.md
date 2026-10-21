@@ -88,6 +88,7 @@ page links like `/s/<code>/upload` work and adds browser security headers).
 * If you see a blank page or CORS error, `FRONTEND_URL` must exactly match the website address (https, no trailing slash).
 
 ## Printing from a hosted site
-cPanel/AWS cannot reach a printer in your shop. In the admin panel choose **Print from the shop PC** and run the small
-`print-agent` program on the shop's Windows PC (it uses that PC's printer and SumatraPDF). No printer or Windows paths are needed on the
-server. Run `php artisan migrate --force` after uploading this update. Full steps: `print-agent/README.md`.
+cPanel/AWS cannot reach a printer in your shop and needs no Poppler or SumatraPDF. In the admin panel choose **Print from the shop PC**
+and run the small `print-agent` program on each shop's Windows PC. That PC's own Poppler draws the pages that need preparation and its
+own SumatraPDF prints. The server only handles scanning, uploads, payment and admin. Run `php artisan migrate --force` after uploading
+this update. Full steps: `print-agent/README.md`.

@@ -1,7 +1,8 @@
 {
   "server": "https://taprint-backend.webfolks.in",
-  "key": "tpa_cbb2ed067eb2258f66c8de77582b749b4b27b5f61136cf38",
+  "key": "tpa_5362e4962ffbdb70df9fc2522017ff273c953926f5aceaf2",
   "sumatraPath": "D:\\SumatraPDF-3.6.1-64 (1)\\sumatrapdf.exe",
+  "popplerPath": "D:\\Release-26.09.0-0\\poppler-26.09.0\\Library\\bin\\pdftoppm.exe",
   "printerName": "",
   "pollSeconds": 2
 }

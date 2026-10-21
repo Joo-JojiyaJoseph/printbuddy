@@ -23,6 +23,12 @@ class Kiosk extends Model
         return 'code';
     }
 
+    /** A mistyped capital letter in a kiosk link must not break it: "Test", "test" and "TEST" are the same kiosk. */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->newQuery()->whereRaw('lower(code) = ?', [mb_strtolower((string) $value)])->first();
+    }
+
     public function sessions(): HasMany
     {
         return $this->hasMany(QrSession::class);

@@ -34,3 +34,15 @@ test('test PDF looks like a PDF with a right-sized xref', () => {
   const start = Number(s.match(/startxref\n(\d+)/)[1])
   assert.equal(s.slice(start, start + 4), 'xref')
 })
+
+import { pdftoppmArgs } from './lib.mjs'
+test('poppler arguments: one page, bounded resolution, grey on request', () => {
+  assert.deepEqual(pdftoppmArgs('s.pdf', 3, 300, true, 'p3'), ['-r', '300', '-f', '3', '-l', '3', '-jpeg', '-jpegopt', 'quality=92', '-gray', 's.pdf', 'p3'])
+  assert.equal(pdftoppmArgs('s.pdf', 1, 99999, false, 'p')[1], '600')
+  assert.equal(pdftoppmArgs('s.pdf', 1, 1, false, 'p')[1], '72')
+  assert.throws(() => pdftoppmArgs('s.pdf', 'x; rm', 300, false, 'p'))
+})
+test('poppler path is found automatically or taken from config', () => {
+  assert.equal(checkConfig({ ...good, popplerPath: 'D:\\p\\pdftoppm.exe' }, () => true).config.popplerPath, 'D:\\p\\pdftoppm.exe')
+  assert.equal(checkConfig(good, () => false).config.popplerPath, '')
+})

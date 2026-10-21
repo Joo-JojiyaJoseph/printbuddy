@@ -48,7 +48,7 @@ final class PrintFileComposer
      *
      * @throws PrintException
      */
-    public function compose(array $settings, array $source, string $target): array
+    public function compose(array $settings, array $source, string $target, ?array $rasters = null): array
     {
         $landscape = ($settings['orientation'] ?? 'portrait') === 'landscape';
         [$pw, $ph] = PrintGeometry::paper((string) ($settings['paper_size'] ?? 'A4'));
@@ -57,13 +57,38 @@ final class PrintFileComposer
         try {
             return in_array($source['kind'], ['jpg', 'png'], true)
                 ? $this->composeImages($settings, $source, $target, $landscape, $pw, $ph, $sw, $sh)
-                : $this->composeDocument($settings, $source, $target, $landscape, $pw, $ph, $sw, $sh);
+                : $this->composeDocument($settings, $source, $target, $landscape, $pw, $ph, $sw, $sh, $rasters);
         } catch (InvalidArgumentException $e) {
             throw new PrintException($e->getMessage());
         }
     }
 
-    private function composeDocument(array $settings, array $source, string $target, bool $landscape, float $pw, float $ph, float $sw, float $sh): array
+    /**
+     * Which source pages must be rendered to pictures, and how, for a document job. Used when another computer (the shop PC
+     * print agent) does the rendering instead of this server.
+     *
+     * @return array{pages:list<int>,gray:bool,dpi:int}
+     */
+    public function plan(array $settings, array $source): array
+    {
+        $edits = $settings['edits']['pages'] ?? null;
+        $plan = $edits ?? array_map(fn ($i) => ['src' => $i, 'rot' => 0, 'align' => null], range(1, max(1, (int) $source['page_count'])));
+        try {
+            $selected = PageRange::parse((string) ($settings['page_range'] ?? ''), count($plan));
+        } catch (InvalidArgumentException $e) {
+            throw new PrintException($e->getMessage());
+        }
+        if (count($selected) > $this->maxPages) {
+            throw new PrintException('This job has too many pages to print.');
+        }
+        $needed = array_values(array_unique(array_filter(array_map(fn ($n) => $plan[$n - 1]['src'], $selected))));
+        sort($needed);
+
+        return ['pages' => array_map('intval', $needed), 'gray' => ($settings['color_mode'] ?? 'bw') === 'bw', 'dpi' => $this->dpi];
+    }
+
+    /** @param array<int,array{0:string,1:int,2:int}>|null $rasters pictures already rendered elsewhere: source page => [jpeg path, px w, px h] */
+    private function composeDocument(array $settings, array $source, string $target, bool $landscape, float $pw, float $ph, float $sw, float $sh, ?array $rasters = null): array
     {
         $edits = $settings['edits']['pages'] ?? null;
         $plan = $edits ?? array_map(fn ($i) => ['src' => $i, 'rot' => 0, 'align' => null], range(1, max(1, (int) $source['page_count'])));
@@ -77,7 +102,12 @@ final class PrintFileComposer
         $dir = $this->workDir();
         try {
             $needed = array_values(array_unique(array_filter(array_map(fn ($n) => $plan[$n - 1]['src'], $selected))));
-            $rasters = $this->rasterise($source['path'], $needed, $dir, $gray);
+            $rasters ??= $this->rasterise($source['path'], $needed, $dir, $gray);
+            foreach ($needed as $n) {
+                if (! isset($rasters[$n]) || ! is_file($rasters[$n][0])) {
+                    throw new PrintException("Page {$n} could not be prepared for printing.");
+                }
+            }
 
             $pdf = new TransformPdf('P', 'mm');
             $pdf->SetAutoPageBreak(false);

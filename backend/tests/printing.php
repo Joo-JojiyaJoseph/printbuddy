@@ -285,3 +285,57 @@ check('agent driver is deferred, not a local printer', $agent instanceof Deferre
 $refused = false; try { $agent->send('/x.pdf', []); } catch (\App\Services\Printing\PrintException $e) { $refused = true; }
 check('agent driver refuses direct sends with a clear message', $refused);
 check('agent is an allowed driver', in_array('agent', \App\Support\IntegrationRules::PRINT_DRIVERS, true));
+
+echo "\n-- pages drawn on another computer (shop PC Poppler) --\n";
+use App\Services\Printing\PrintFileComposer as PFC;
+$cmp = new PFC('', 100);
+$settingsA = ['page_range' => '1,3', 'copies' => 1, 'color_mode' => 'bw', 'paper_size' => 'A4', 'orientation' => 'portrait', 'duplex' => false, 'scaling' => 'fit', 'edits' => null, 'pages_per_sheet' => 1];
+$planA = $cmp->plan($settingsA, ['kind' => 'pdf', 'page_count' => 5]);
+check('plan lists only the chosen pages, grey for black and white', $planA['pages'] === [1, 3] && $planA['gray'] === true && $planA['dpi'] === 100);
+$planB = $cmp->plan(['edits' => ['pages' => [['src' => 4, 'rot' => 0, 'align' => 'fit'], ['src' => null, 'rot' => 0, 'align' => 'fit'], ['src' => 2, 'rot' => 0, 'align' => 'fit'], ['src' => 4, 'rot' => 90, 'align' => 'fit']]], 'color_mode' => 'color', 'page_range' => ''] + $settingsA, ['kind' => 'pdf', 'page_count' => 5]);
+check('plan follows edits: blanks skipped, repeats listed once, sorted', $planB['pages'] === [2, 4] && $planB['gray'] === false);
+check('too many pages is refused', (function () { $c = new PFC('', 100, 120, 3); try { $c->plan(['page_range' => '', 'edits' => null], ['kind' => 'pdf', 'page_count' => 10]); return false; } catch (\App\Services\Printing\PrintException) { return true; } })());
+if (trim((string) shell_exec('command -v pdftoppm')) === '') {
+    echo "  skip pdftoppm not installed here: composing from pictures drawn elsewhere not exercised\n";
+} else {
+    $f = tempnam(sys_get_temp_dir(), 'pbs') . '.pdf';
+    $p = new FPDF('P', 'mm', 'A4');
+    foreach ([[255, 0, 0], [0, 255, 0], [0, 0, 255]] as $c) { $p->AddPage(); $p->SetFillColor(...$c); $p->Rect(0, 0, 210, 297, 'F'); }
+    $p->Output('F', $f);
+    $s = ['page_range' => '3,1', 'copies' => 1, 'color_mode' => 'color', 'paper_size' => 'A4', 'orientation' => 'portrait', 'duplex' => false, 'scaling' => 'fit', 'edits' => null, 'pages_per_sheet' => 1];
+    $plan = $cmp->plan($s, ['kind' => 'pdf', 'page_count' => 3]);
+    $dir = sys_get_temp_dir() . '/pbr' . bin2hex(random_bytes(4)); mkdir($dir);
+    $rasters = [];
+    foreach ($plan['pages'] as $n) { // what the shop PC does
+        shell_exec(sprintf('pdftoppm -r %d -f %d -l %d -jpeg %s %s', $plan['dpi'], $n, $n, escapeshellarg($f), escapeshellarg("$dir/p$n")));
+        $file = glob("$dir/p$n-*.jpg")[0]; $sz = getimagesize($file);
+        $rasters[$n] = [$file, $sz[0], $sz[1]];
+    }
+    $out = tempnam(sys_get_temp_dir(), 'pbo') . '.pdf';
+    $r = $cmp->compose($s, ['kind' => 'pdf', 'page_count' => 3], $out, $rasters);
+    check('compose from pictures drawn elsewhere builds the right sheets', $r['pages'] === 2 && str_starts_with((string) file_get_contents($out), '%PDF'));
+    $missing = $rasters; unset($missing[1]);
+    $failed = false; try { $cmp->compose($s, ['kind' => 'pdf', 'page_count' => 3], $out, $missing); } catch (\App\Services\Printing\PrintException) { $failed = true; }
+    check('a missing picture is reported, not printed blank', $failed);
+}
+
+echo "\n-- shop PC setup package --\n";
+require_once __DIR__ . '/../app/Services/Printing/AgentBundle.php';
+use App\Services\Printing\AgentBundle;
+$srcDir = __DIR__ . '/../resources/print-agent';
+$bundle = new AgentBundle($srcDir);
+$bkey = AgentKey::generate();
+$zipPath = $bundle->build('https://api.example.com/', $bkey);
+$za = new ZipArchive(); $za->open($zipPath);
+$names = []; for ($i = 0; $i < $za->numFiles; $i++) { $names[] = $za->getNameIndex($i); }
+check('setup zip holds the program and a config.json', count(array_diff(array_map(fn($f) => 'print-agent/' . $f, AgentBundle::FILES), $names)) === 0 && in_array('print-agent/config.json', $names, true));
+$cfg = json_decode((string) $za->getFromName('print-agent/config.json'), true);
+check('config.json already has this kiosk\'s key and the server address', $cfg['key'] === $bkey && $cfg['server'] === 'https://api.example.com' && $cfg['pollSeconds'] === 2);
+check('batch files keep Windows line endings', str_contains((string) $za->getFromName('print-agent/install-agent.bat'), "\r\n"));
+check('no test files or other keys are shipped', !in_array('print-agent/agent.test.mjs', $names, true) && !str_contains((string) $za->getFromName('print-agent/config.json'), 'tpa_paste'));
+$za->close(); @unlink($zipPath);
+$same = true;
+foreach (AgentBundle::FILES as $f) { if (is_file(__DIR__ . "/../../print-agent/$f") && md5_file(__DIR__ . "/../../print-agent/$f") !== md5_file("$srcDir/$f")) { $same = false; echo "  differs: $f\n"; } }
+check('the packaged program matches the print-agent folder (re-copy it after changing the agent)', $same);
+$broken = false; try { (new AgentBundle(sys_get_temp_dir() . '/nope-' . bin2hex(random_bytes(3))))->build('https://x.test', $bkey); } catch (RuntimeException) { $broken = true; }
+check('missing program files are reported, not shipped empty', $broken);

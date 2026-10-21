@@ -62,3 +62,11 @@ Customers scan with their phone camera and upload the photo. A USB/network scann
 ## 6. API
 All endpoints are under `/api/v1/admin` and need `Authorization: Bearer <token>` from `POST /login`:
 `/me, /dashboard, /orders, /payments, /sessions, /kiosks, /printer (GET/PUT), /printer/test, /reports/sales, /reports/orders.csv, /pricing, /settings, /integrations, /users, /audit`.
+
+## Setting up a shop PC: Download setup
+On a kiosk row (Printer & kiosks) or its detail page click **Download setup**: you get a zip with the print program and a ready `config.json` (server address and that kiosk's new print key). Unzip it on the shop PC and run `install-agent.bat`. Keep the zip private; it contains the key.
+
+## Kiosks: details, orders and payments per kiosk
+**Kiosks** (sidebar) lists every kiosk with today's sessions, paid orders, revenue and whether its shop PC is ready to print. Open a kiosk to see
+revenue (today, 7 days, all time), sessions, orders, printed / failed counts and its latest orders and payments, with **View all** links that open
+the Orders or Payments page already filtered to that kiosk. Orders and Payments also have a **Kiosk** filter, and Payments shows a Kiosk column.

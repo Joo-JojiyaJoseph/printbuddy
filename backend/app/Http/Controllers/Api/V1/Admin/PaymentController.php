@@ -21,8 +21,12 @@ class PaymentController extends Controller
         $p = $this->listParams($request, ['created_at', 'amount_paise', 'status', 'verified_at'], [
             'status' => ['nullable', Rule::in([Payment::PENDING, Payment::SUCCEEDED, Payment::FAILED, Payment::EXPIRED])],
             'needs_review' => ['nullable', 'boolean'],
+            'kiosk' => ['nullable', 'string', 'max:40'],
         ]);
-        $q = Payment::query()->with('order:id,reference,status');
+        $q = Payment::query()->with(['order:id,reference,status,qr_session_id', 'order.session:id,kiosk_id', 'order.session.kiosk:id,code,name']);
+        if (! empty($p['kiosk'])) {
+            $q->whereHas('order.session.kiosk', fn ($k) => $k->where('code', $p['kiosk']));
+        }
         if (! empty($p['status'])) {
             $q->where('status', $p['status']);
         }
@@ -67,6 +71,7 @@ class PaymentController extends Controller
             'id' => $p->id,
             'order_reference' => $p->order?->reference,
             'order_status' => $p->order?->status,
+            'kiosk' => $p->order?->session?->kiosk?->code,
             'provider' => $p->provider,
             'provider_payment_id' => $p->provider_payment_id,
             'amount_paise' => $p->amount_paise,

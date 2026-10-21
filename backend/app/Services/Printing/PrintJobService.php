@@ -69,6 +69,11 @@ class PrintJobService
             if (! $this->driver->available()) {
                 throw new PrintException('The printer is not set up on this machine.', retryable: false);
             }
+            if ($this->driver instanceof DeferredPrinter && ($need = $this->renderNeeded($order)) !== null) {
+                $this->requestRender($job, $order, $need); // the shop PC renders the pages (its own Poppler); we compose when they arrive
+
+                return;
+            }
             [$file, $tmp, $pages, $direct] = $this->prepareFile($order);
             $settings = $order->print_settings;
             if ($this->driver instanceof DeferredPrinter) {
@@ -114,22 +119,98 @@ class PrintJobService
             throw new PrintException('The print file could not be stored for the shop computer.', retryable: true);
         }
         fclose($in);
-        $s = (array) $order->print_settings;
-        $job->forceFill([
-            'status' => PrintJob::WAITING,
-            'pages' => $pages,
-            'agent_file' => $rel,
-            'agent_meta' => [
-                'reference' => $order->reference,
-                'title' => 'Taprint '.$order->reference,
-                'copies' => max(1, (int) ($s['copies'] ?? 1)),
-                'color' => ($s['color_mode'] ?? 'bw') === 'color',
-                'duplex' => (bool) ($s['duplex'] ?? false),
-                'landscape' => ($s['orientation'] ?? 'portrait') === 'landscape',
-                'paper' => (string) ($s['paper_size'] ?? 'A4'),
-            ],
-        ])->save();
+        $job->forceFill(['status' => PrintJob::WAITING, 'pages' => $pages, 'agent_file' => $rel, 'agent_meta' => $this->agentMeta($order, 'print')])->save();
         $this->audit->log('print.waiting_for_agent', $job, ['order' => $order->reference, 'pages' => $pages]);
+    }
+
+    /** @return array<string,mixed> what the shop PC needs to print (or to render) this order */
+    private function agentMeta(PrintOrder $order, string $phase, array $extra = []): array
+    {
+        $s = (array) $order->print_settings;
+
+        return [
+            'phase' => $phase,
+            'reference' => $order->reference,
+            'title' => 'Taprint '.$order->reference,
+            'copies' => max(1, (int) ($s['copies'] ?? 1)),
+            'color' => ($s['color_mode'] ?? 'bw') === 'color',
+            'duplex' => (bool) ($s['duplex'] ?? false),
+            'landscape' => ($s['orientation'] ?? 'portrait') === 'landscape',
+            'paper' => (string) ($s['paper_size'] ?? 'A4'),
+        ] + $extra;
+    }
+
+    /** @return array{pages:list<int>,gray:bool,dpi:int}|null pages the shop PC must render, or null when none are needed */
+    private function renderNeeded(PrintOrder $order): ?array
+    {
+        $doc = Document::query()->find($order->document_id);
+        if ($doc === null || $doc->deleted_at !== null) {
+            throw new PrintException('The document is no longer available.');
+        }
+        $settings = (array) $order->print_settings;
+        if (in_array($doc->kind, ['jpg', 'png'], true) || PrintFileComposer::isDirect($settings, (string) $doc->kind)) {
+            return null;
+        }
+
+        return $this->composer->plan($settings, ['kind' => 'pdf', 'page_count' => (int) $doc->page_count]);
+    }
+
+    private function requestRender(PrintJob $job, PrintOrder $order, array $need): void
+    {
+        $this->discardSpool($job);
+        $job->forceFill(['status' => PrintJob::WAITING, 'agent_file' => null, 'agent_meta' => $this->agentMeta($order, 'render', ['render_pages' => $need['pages'], 'dpi' => $need['dpi'], 'gray' => $need['gray']])])->save();
+        $this->audit->log('print.render_requested', $job, ['order' => $order->reference, 'pages' => count($need['pages'])]);
+    }
+
+    /** The source PDF the shop PC renders from (private storage path). */
+    public function renderSource(PrintJob $job): ?string
+    {
+        $order = PrintOrder::query()->find($job->print_order_id);
+        $doc = $order ? Document::query()->find($order->document_id) : null;
+        if ($doc === null || $doc->deleted_at !== null) {
+            return null;
+        }
+        $path = Storage::disk(config('printbuddy.documents_disk'))->path((string) ($doc->preview_path ?: $doc->storage_path));
+
+        return is_file($path) ? $path : null;
+    }
+
+    /** The shop PC finished rendering: compose the final file from its pictures and make it ready to print. */
+    public function renderFinished(PrintJob $job): void
+    {
+        $order = PrintOrder::query()->find($job->print_order_id);
+        $disk = Storage::disk(config('printbuddy.documents_disk'));
+        $dir = 'agent-spool/'.$job->id;
+        $tmp = null;
+        try {
+            if ($order === null) {
+                throw new PrintException('The order is no longer available.');
+            }
+            $need = (array) ($job->agent_meta ?? []);
+            $rasters = [];
+            foreach ((array) ($need['render_pages'] ?? []) as $n) {
+                $path = $disk->path($dir.'/p'.(int) $n.'.jpg');
+                $size = is_file($path) ? @getimagesize($path) : false;
+                if ($size === false) {
+                    throw new PrintException('The shop computer did not send every page.');
+                }
+                $rasters[(int) $n] = [$path, $size[0], $size[1]];
+            }
+            $doc = Document::query()->find($order->document_id);
+            $tmp = tempnam(sys_get_temp_dir(), 'pbprint').'.pdf';
+            $out = $this->composer->compose((array) $order->print_settings, ['kind' => 'pdf', 'page_count' => (int) ($doc?->page_count ?? 1)], $tmp, $rasters);
+            $this->handOverToAgent($job, $order, $tmp, (int) $out['pages']);
+        } catch (PrintException $e) {
+            $this->fail($job, $order ?? new PrintOrder(), $e->getMessage(), false);
+        } catch (\Throwable $e) {
+            Log::error('Render finish crashed', ['job' => $job->id, 'error' => $e->getMessage()]);
+            $this->fail($job, $order ?? new PrintOrder(), 'Something went wrong while preparing the pages.', false);
+        } finally {
+            if ($tmp !== null && is_file($tmp)) {
+                @unlink($tmp);
+            }
+            $disk->deleteDirectory($dir); // the page pictures are no longer needed
+        }
     }
 
     /** The shop PC reports back. Success: sent. Failure: needs staff (we cannot tell whether paper came out). */
@@ -152,6 +233,7 @@ class PrintJobService
 
     public function discardSpool(PrintJob $job): void
     {
+        Storage::disk(config('printbuddy.documents_disk'))->deleteDirectory('agent-spool/'.$job->id);
         if ($job->agent_file) {
             Storage::disk(config('printbuddy.documents_disk'))->delete($job->agent_file);
             $job->forceFill(['agent_file' => null])->save();
@@ -191,6 +273,7 @@ class PrintJobService
     {
         $job->forceFill(['status' => $willRetry ? PrintJob::QUEUED : PrintJob::FAILED, 'failure_reason' => mb_substr($reason, 0, 250)])->save();
         if (! $willRetry) {
+            $this->discardSpool($job);
             $this->audit->log('print.failed', $job, ['order' => $order->reference, 'reason' => $reason]);
         }
     }
@@ -214,7 +297,7 @@ class PrintJobService
 
             return [$path, null, (int) $doc->page_count, true];
         }
-        if (! $this->composer->available()) {
+        if (! $isImage && ! $this->composer->available()) {
             throw new PrintException('Page preparation (Poppler) is not installed on this machine.');
         }
 

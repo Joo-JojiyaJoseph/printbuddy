@@ -94,7 +94,7 @@ class PrinterController extends Controller
             'installed_printers' => $installed['names'],
             'installed_error' => $installed['error'],
             'printer_found' => $effective === '' || in_array($effective, $installed['names'], true),
-            'poppler_available' => $poppler,
+            'poppler_available' => $driver->name() === 'agent' ? true : $poppler, // in shop-PC mode Poppler lives on the shop PCs
             'agent' => $this->agent(),
             'jobs_24h' => [
                 'sent' => (clone $jobs)->where('status', PrintJob::SENT)->count(),

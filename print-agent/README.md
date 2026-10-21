@@ -7,9 +7,20 @@ because those are set in each PC's `config.json`, not on the server. The kiosk s
 
 Use this when the website is hosted online (cPanel/AWS). The server cannot reach your printer, so this small
 program on the shop PC collects each **paid** order from the website and prints it with the PC's own printer and
-SumatraPDF. The hosted server needs **no printer, no Windows paths and no SumatraPDF**.
+SumatraPDF. The hosted server needs **no printer, no Windows paths, no SumatraPDF and no Poppler**: the server only handles scanning,
+uploads, payment and the admin panel.
+
+When an order needs page preparation (edited pages, several pages per sheet, page ranges, landscape, scaling), the server asks the
+shop PC to draw the needed pages with **its own Poppler**, sends them back, assembles the final sheets and sends the finished
+file for printing. Plain unedited documents and photos need no Poppler at all.
 
 The shop PC only makes outgoing connections (like a web browser), so no router or firewall changes are needed.
+
+## Fastest way: Download setup
+In the admin panel (**Printer & kiosks**, or open the kiosk under **Kiosks**) click **Download setup** on a kiosk. You get a zip with the program and a
+`config.json` that already holds that kiosk's key and the server address. On the shop PC: unzip it, install Node.js, SumatraPDF and Poppler,
+optionally put the Poppler / printer details in `config.json`, then double-click `install-agent.bat`. Each download makes a new key for that kiosk
+(the previous key stops working). The steps below describe the same thing done by hand.
 
 ## One-time setup
 
@@ -20,18 +31,19 @@ The shop PC only makes outgoing connections (like a web browser), so no router o
 3. Run `php artisan migrate --force` once, because this update adds three small columns.
 
 **On the shop Windows PC**
-1. Install **SumatraPDF** (sumatrapdfreader.org) and **Node.js 18 or newer** (nodejs.org, the LTS one).
+1. Install **SumatraPDF** (sumatrapdfreader.org), **Node.js 18 or newer** (nodejs.org, the LTS one) and **Poppler for Windows**
+   (download the zip from github.com/oschwartz10612/poppler-windows/releases and unzip it, for example to `C:\poppler`).
 2. Copy this `print-agent` folder to the PC, for example `C:\Taprint\print-agent`.
-3. Double-click `start-agent.bat`. The first time it opens `config.json`: set
-   - `server`: your backend address, e.g. `https://taprint-backend.webfolks.in`
-   - `key`: the key you copied
-   - `printerName`: optional; leave empty for the Windows default printer, or type the exact printer name
-   - `sumatraPath`: leave empty (found automatically) or give the full path to `SumatraPDF.exe`
-4. Double-click `test-agent.bat` to print a test page. When paper comes out, run `start-agent.bat` and leave the window open.
+3. Double-click `install-agent.bat`. The first time it opens `config.json`: set
+   - `server`: your backend address, e.g. `https://taprint-backend.webfolks.in` (no `/api/v1`)
+   - `key`: this shop's print key
+   - `printerName`: optional; empty = the Windows default printer, or the exact printer name
+   - `popplerPath`: full path to `pdftoppm.exe` inside Poppler's `Library\bin` folder, e.g. `C:\\poppler\\Library\\bin\\pdftoppm.exe` (empty = found automatically in `C:\poppler` or on PATH)
+   - `sumatraPath`: empty (found automatically in the standard folders) or the full path, with doubled backslashes
+   Save, then run `install-agent.bat` again. It prints a test page and, if paper comes out, makes the program start by itself
+   (hidden, no window) every time Windows signs in. That is the whole setup; there is nothing to run by hand afterwards.
 
-## Keep it running
-Press `Win+R`, type `shell:startup`, and put a shortcut to `start-agent.bat` there. It then starts when the PC signs in, and
-restarts itself if it stops. The admin panel shows **Shop PC print program is running** while it is connected.
+To remove it, run `uninstall-agent.bat`. Logs are in `agent.log`. `start-agent.bat` still exists for running it visibly while testing.
 
 ## How it behaves
 - Only paid orders are ever sent. Each is claimed by exactly one program, so it cannot print twice.
