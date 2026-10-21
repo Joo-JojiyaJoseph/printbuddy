@@ -12,7 +12,7 @@ use InvalidArgumentException;
  *      [{src: 1-based source page | null (blank), rot: 0|90|180|270, align: fit|center|tl|fill, marks?: [...]}]
  *      marks are drawings ON TOP of the original page (text, white-out cover, highlight) in fractions of the displayed
  *      page; edits.stamp = {numbers: bool, watermark: string} is applied to every output page.
- *  - images (JPG / PNG):            edits.sheet = {per_page, mode, fit, margin, images:[{document_id, rot, x?, y?, zoom?, crop?:{l,t,r,b}}]}
+ *  - images (JPG / PNG):            edits.sheet = {per_page, mode, fit, margin, images:[{document_id, rot, x?, y?, zoom?, crop?:{l,t,r,b}, adjust?:{brightness,contrast,enhance}}]}
  *      x / y = where the customer dragged the picture (fraction of its cell, -0.5..0.5 from the middle), zoom = its size (0.2..4)
  *      mode 'sequence' packs images in order, `per_page` to a sheet;
  *      mode 'copies' repeats each image `per_page` times on its own sheet.
@@ -253,6 +253,32 @@ final class PagePlan
         return array_sum($out) == 0.0 ? null : $out;
     }
 
+    /**
+     * Picture look: brightness and contrast (whole numbers -50..50) and `enhance` (sharpen, and enlarge a small picture when printed).
+     *
+     * @return array{brightness:int,contrast:int,enhance:bool}|null null when nothing is changed
+     */
+    private static function adjust(mixed $a): ?array
+    {
+        if ($a === null || $a === []) {
+            return null;
+        }
+        if (! is_array($a) || (isset($a['enhance']) && ! is_bool($a['enhance']))) {
+            throw new InvalidArgumentException('Unsupported picture adjustment.');
+        }
+        $out = [];
+        foreach (['brightness', 'contrast'] as $k) {
+            $v = $a[$k] ?? 0;
+            if (! is_int($v) && ! is_float($v) || ! is_finite((float) $v) || abs($v) > 50) {
+                throw new InvalidArgumentException('Unsupported picture adjustment.');
+            }
+            $out[$k] = (int) round($v);
+        }
+        $out['enhance'] = ($a['enhance'] ?? false) === true;
+
+        return ($out['brightness'] || $out['contrast'] || $out['enhance']) ? $out : null;
+    }
+
     private static function sheet(array $sheet, array $imageIds, string $primaryId, int $maxPages): array
     {
         $perPage = $sheet['per_page'] ?? 1;
@@ -298,6 +324,10 @@ final class PagePlan
             $crop = self::crop($img['crop'] ?? null);
             if ($crop !== null) {
                 $item['crop'] = $crop;
+            }
+            $adjust = self::adjust($img['adjust'] ?? null);
+            if ($adjust !== null) {
+                $item['adjust'] = $adjust;
             }
             $out[] = $item;
         }

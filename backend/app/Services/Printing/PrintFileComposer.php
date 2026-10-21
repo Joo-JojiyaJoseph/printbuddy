@@ -231,6 +231,7 @@ final class PrintFileComposer
         $cells = PrintGeometry::cells((int) $sheet['per_page'], $landscape, $sw, $sh, (float) $sheet['margin']);
         $mode = ($sheet['fit'] ?? 'fit') === 'fill' ? 'cover' : 'contain';
 
+        $temps = [];
         $pdf = new TransformPdf('P', 'mm');
         $pdf->SetAutoPageBreak(false);
         $pdf->SetCreator('Taprint');
@@ -250,11 +251,25 @@ final class PrintFileComposer
                 $rot = ((int) ($img['rot'] ?? 0) + $exif) % 360;
                 $crop = isset($img['crop']) ? PrintGeometry::cropToRaw($img['crop'], $exif) : null; // the customer cropped the upright picture
                 [$bx, $by, $bw, $bh] = $cells[$i];
-                $pdf->placeInBox($info['path'], $type, $size[0], $size[1], $rot, $bx, $by, $bw, $bh, $mode, 0, 0,
+                $path = $info['path'];
+                if (! empty($img['adjust'])) { // brightness / contrast / enhance: the processed copy is already upright
+                    $done = ImageEnhancer::process($path, $type, $exif, $img['adjust'], max($bw, $bh) * (float) ($img['zoom'] ?? 1), sys_get_temp_dir());
+                    if ($done !== null) {
+                        $temps[] = $done['path'];
+                        $path = $done['path'];
+                        $size = [$done['w'], $done['h']];
+                        $rot = (int) ($img['rot'] ?? 0) % 360;
+                        $crop = $img['crop'] ?? null;
+                    }
+                }
+                $pdf->placeInBox($path, $type, $size[0], $size[1], $rot, $bx, $by, $bw, $bh, $mode, 0, 0,
                     (float) ($img['x'] ?? 0), (float) ($img['y'] ?? 0), (float) ($img['zoom'] ?? 1), $crop);
             }
         }
         $pdf->Output('F', $target);
+        foreach ($temps as $t) {
+            @unlink($t);
+        }
 
         return ['pages' => count($selected)];
     }
