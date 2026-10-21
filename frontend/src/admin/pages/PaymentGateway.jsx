@@ -15,19 +15,26 @@ export default function PaymentGateway() {
   if (loading || error || !f) return <><PageHead title="Payment gateway" /><Loading error={error} onRetry={reload} /></>
   const p = data.payment
 
+  const dirty = f.provider !== p.provider || f.key_id.trim() !== p.key_id || !!f.key_secret || !!f.webhook_secret
+  const persist = () => adminApi.saveIntegrations({
+    payment_provider: f.provider, razorpay_key_id: f.key_id.trim(),
+    ...(f.key_secret && { razorpay_key_secret: f.key_secret }), ...(f.webhook_secret && { razorpay_webhook_secret: f.webhook_secret }),
+  })
   const save = async () => {
     setBusy('save'); setMsg(null); setFieldErr({})
     try {
-      await adminApi.saveIntegrations({
-        payment_provider: f.provider, razorpay_key_id: f.key_id.trim(),
-        ...(f.key_secret && { razorpay_key_secret: f.key_secret }), ...(f.webhook_secret && { razorpay_webhook_secret: f.webhook_secret }),
-      })
+      await persist()
       setMsg({ tone: 'good', text: 'Saved. The secrets are stored encrypted and are not shown again.' }); reload()
     } catch (e) { setMsg({ tone: 'bad', text: e.message }); setFieldErr(e.errors || {}) } finally { setBusy('') }
   }
+  // Test connection checks what is SAVED, so any change on the screen is saved first. Nothing is tested that was never saved.
   const test = async () => {
-    setBusy('test'); setMsg(null)
-    try { const r = await adminApi.testPayment(); setMsg({ tone: 'good', text: r.message }) } catch (e) { setMsg({ tone: 'bad', text: e.message }) } finally { setBusy('') }
+    setBusy('test'); setMsg(null); setFieldErr({})
+    try {
+      if (dirty) { try { await persist() } catch (e) { setFieldErr(e.errors || {}); throw e } }
+      const r = await adminApi.testPayment()
+      setMsg({ tone: 'good', text: `${dirty ? 'Saved. ' : ''}${r.message}` }); if (dirty) reload()
+    } catch (e) { setMsg({ tone: 'bad', text: e.message }) } finally { setBusy('') }
   }
   const copy = (text, what) => navigator.clipboard?.writeText(text).then(() => setMsg({ tone: 'good', text: `${what} copied.` })).catch(() => {})
   const razor = f.provider === 'razorpay'
@@ -69,7 +76,7 @@ export default function PaymentGateway() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Btn loading={busy === 'test'} onClick={test}>Test connection</Btn>
                   {p.mode && <Badge tone={p.mode === 'live' ? 'good' : 'warn'}>{p.mode === 'live' ? 'live keys: real money' : 'test keys: no real money'}</Badge>}
-                  <span className="text-xs text-[var(--muted)]">Save first, then test.</span>
+                  <span className="text-xs text-[var(--muted)]">Any change you made is saved first, then tested.</span>
                 </div>
               </>
             )}

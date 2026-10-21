@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { CheckCircle2, Copy, ScanLine, XCircle } from 'lucide-react'
 import { adminApi } from '../adminApi'
+import { downloadShopSetup } from '../setupDownload'
 import { useAdmin } from '../AdminApp'
 import { Badge, Btn, Field, Loading, Notice, PageHead, Panel, Table, inputCls, useLoad, dt } from '../ui'
 
@@ -18,7 +20,7 @@ function AgentSetup({ agent }) {
   return (
     <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--hi)] p-3 text-sm">
       <p className="m-0 font-semibold">Printing on each shop’s own PC</p>
-      <p className="m-0 mt-1 text-xs text-[var(--muted)]">Every kiosk has its own print key. Orders started at a kiosk print only on that shop’s PC, with that PC’s printer and SumatraPDF. Create each shop’s key in the <b>Kiosks</b> list below. This server needs no printer or Windows paths. {agent.waiting > 0 ? `${agent.waiting} job(s) waiting.` : ''}</p>
+      <p className="m-0 mt-1 text-xs text-[var(--muted)]">Every kiosk has its own print key. Orders started at a kiosk print only on that shop’s PC, with that PC’s printer and SumatraPDF. Create each shop’s key in the <b>Kiosks</b> list below. This server needs no printer, Poppler or Windows paths. {agent.waiting > 0 ? `${agent.waiting} job(s) waiting.` : ''}</p>
     </div>
   )
 }
@@ -86,7 +88,7 @@ function ConnectionPanel({ onSaved }) {
   const pr = data.printing
   const save = async () => {
     setBusy(true); setMsg(null); setFieldErr({})
-    try { await adminApi.saveIntegrations(f.print_driver === 'agent' ? { ...f, sumatra_path: '', lp_path: '' } : f); setMsg({ tone: 'good', text: 'Saved.' }); reload(); onSaved() } catch (e) { setMsg({ tone: 'bad', text: e.message }); setFieldErr(e.errors || {}) } finally { setBusy(false) }
+    try { await adminApi.saveIntegrations(f.print_driver === 'agent' ? { ...f, sumatra_path: '', lp_path: '', pdftoppm_path: '' } : f); setMsg({ tone: 'good', text: 'Saved.' }); reload(); onSaved() } catch (e) { setMsg({ tone: 'bad', text: e.message }); setFieldErr(e.errors || {}) } finally { setBusy(false) }
   }
   const path = (k, label, found, hint) => (
     <Field label={label} hint={found ? `Found: ${found}` : hint}>
@@ -97,7 +99,7 @@ function ConnectionPanel({ onSaved }) {
   return (
     <Panel title="Connection settings" action={<Badge tone={pr.from === 'admin' ? 'info' : 'mute'}>{pr.from === 'admin' ? 'saved here' : 'from .env'}</Badge>}>
       <div className="grid gap-3">
-        <Field label="How the server prints" hint={f.print_driver === 'agent' ? 'The shop PC’s own printer and SumatraPDF are used; nothing to set up on this server.' : pr.os === 'Windows' ? 'If this server is the shop PC, choose SumatraPDF.' : 'If this server is hosted online, choose “Print from the shop PC”.'}>
+        <Field label="How the server prints" hint={f.print_driver === 'agent' ? 'Printing and page preparation (SumatraPDF, Poppler, the printer) all run on each shop’s PC. Nothing to set up on this server.' : pr.os === 'Windows' ? 'If this server is the shop PC, choose SumatraPDF.' : 'If this server is hosted online, choose “Print from the shop PC”.'}>
           <select className={inputCls} value={f.print_driver} onChange={(e) => setF({ ...f, print_driver: e.target.value })}>
             {!pr.production && <option value="file">Save PDFs to a folder (testing, nothing prints)</option>}
             <option value="agent">Print from the shop PC (use when hosted online)</option>
@@ -108,7 +110,7 @@ function ConnectionPanel({ onSaved }) {
         </Field>
         {f.print_driver === 'sumatra' && path('sumatra_path', 'SumatraPDF.exe location', pr.detected.sumatra, 'Install SumatraPDF, then paste the full path to SumatraPDF.exe.')}
         {f.print_driver === 'cups' && path('lp_path', 'lp command location', pr.detected.lp, 'Usually /usr/bin/lp.')}
-        {path('pdftoppm_path', 'Poppler (pdftoppm) location', pr.detected.pdftoppm, 'Needed for edited pages and several pages per sheet. Install Poppler and paste the path to pdftoppm.')}
+        {f.print_driver !== 'agent' && path('pdftoppm_path', 'Poppler (pdftoppm) location', pr.detected.pdftoppm, 'Needed for edited pages and several pages per sheet. Install Poppler and paste the path to pdftoppm.')}
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
         <div><Btn variant="solid" loading={busy} onClick={save}>Save connection settings</Btn></div>
         <p className="m-0 text-xs text-[var(--muted)]">Only the expected program is accepted for each path. Pick the printer itself above.</p>
@@ -138,6 +140,9 @@ function Kiosks() {
     if (k.agent?.key_set && !window.confirm(`Make a new print key for ${k.name}? The program on that shop PC stops working until you paste the new key into it.`)) return
     try { const r = await adminApi.newKioskKey(k.id); setNewKey({ name: k.name, key: r.key }); reload() } catch (x) { setMsg({ tone: 'bad', text: x.message }) }
   }
+  const getSetup = async (k) => {
+    try { if (await downloadShopSetup(k)) { setMsg({ tone: 'good', text: `Setup for ${k.name} downloaded. Unzip it on that shop’s PC and double-click install-agent.bat.` }); reload() } } catch (x) { setMsg({ tone: 'bad', text: x.message }) }
+  }
   const add = async (e) => {
     e.preventDefault(); setMsg(null)
     try { await adminApi.createKiosk(form); setForm({ code: '', name: '', location: '' }); setMsg({ tone: 'good', text: 'Kiosk added.' }); reload() } catch (x) { setMsg({ tone: 'bad', text: x.message }) }
@@ -152,7 +157,7 @@ function Kiosks() {
           { key: 'active', label: 'Status', render: (r) => <Badge tone={r.active ? 'good' : 'mute'}>{r.active ? 'active' : 'off'}</Badge> },
           { key: 'sessions_today', label: 'Today' },
           { key: 'agent', label: 'Shop PC', render: (r) => <Badge tone={r.agent?.online ? 'good' : r.agent?.key_set ? 'warn' : 'mute'}>{r.agent?.online ? 'printing ready' : r.agent?.key_set ? 'not connected' : 'no key yet'}</Badge> },
-          { key: 'act', label: '', render: (r) => <span className="flex gap-1.5"><Btn aria-label={`Copy link for ${r.name}`} onClick={() => copy(r)}><Copy size={14} />Link</Btn>{isAdmin && <Btn onClick={() => makeKey(r)}>{r.agent?.key_set ? 'New print key' : 'Print key'}</Btn>}{isAdmin && <Btn onClick={() => toggle(r)}>{r.active ? 'Switch off' : 'Switch on'}</Btn>}</span> },
+          { key: 'act', label: '', render: (r) => <span className="flex flex-wrap gap-1.5"><Link to={`/admin/kiosks/${r.code}`} className="inline-flex min-h-9 items-center rounded-xl border border-[#d6cdf3] bg-white px-3 text-sm font-semibold text-[var(--color-accent)] no-underline">Details</Link><Btn aria-label={`Copy link for ${r.name}`} onClick={() => copy(r)}><Copy size={14} />Link</Btn>{isAdmin && <Btn onClick={() => getSetup(r)}>Download setup</Btn>}{isAdmin && <Btn onClick={() => makeKey(r)}>{r.agent?.key_set ? 'New print key' : 'Print key'}</Btn>}{isAdmin && <Btn onClick={() => toggle(r)}>{r.active ? 'Switch off' : 'Switch on'}</Btn>}</span> },
         ]} />
       )}
       {msg && <div className="mt-3"><Notice tone={msg.tone}>{msg.text}</Notice></div>}

@@ -55,6 +55,8 @@ const real = {
   testPrinter: () => d('/printer/test', { method: 'POST' }),
   newKioskKey: (id) => d(`/kiosks/${id}/agent-key`, { method: 'POST' }),
   kiosks: () => d('/kiosks'),
+  kioskSetup: (id) => req(`/kiosks/${id}/agent-setup`, { method: 'POST', raw: true }),
+  kiosk: (code) => d(`/kiosks/${encodeURIComponent(code)}`),
   createKiosk: (b) => d('/kiosks', { method: 'POST', body: b }),
   updateKiosk: (id, b) => d(`/kiosks/${id}`, { method: 'PUT', body: b }),
   sales: (p) => d(`/reports/sales${qs(p)}`),
@@ -91,7 +93,7 @@ const seed = () => {
     }
   })
   const payments = orders.filter((o) => o.status !== 'cancelled').map((o, i) => ({
-    id: `pay-${i}`, order_reference: o.reference, order_status: o.status, provider: 'fake', provider_payment_id: `qr_${1000 + i}`, amount_paise: o.total_paise,
+    id: `pay-${i}`, order_reference: o.reference, order_status: o.status, kiosk: o.kiosk, provider: 'fake', provider_payment_id: `qr_${1000 + i}`, amount_paise: o.total_paise,
     currency: 'INR', status: o.payment_status, review_reason: i === 6 ? 'Amount received did not match the order' : null, expires_at: o.created_at, verified_at: o.paid_at, created_at: o.created_at,
   }))
   const sessions = Array.from({ length: 14 }, (_, i) => ({
@@ -101,9 +103,9 @@ const seed = () => {
   return {
     orders, payments, sessions,
     kiosks: [
-      { id: 'k1', code: 'demo', name: 'Demo kiosk', location: 'Front desk', active: true, sessions_today: 6, url: '/kiosk?k=demo' },
-      { id: 'k2', code: 'lib-1', name: 'Library kiosk', location: 'Ground floor', active: true, sessions_today: 3, url: '/kiosk?k=lib-1' },
-      { id: 'k3', code: 'campus-2', name: 'Campus block B', location: 'Canteen side', active: false, sessions_today: 0, url: '/kiosk?k=campus-2' },
+      { id: 'k1', code: 'demo', name: 'Demo kiosk', location: 'Front desk', active: true, sessions_today: 6, url: '/k/demo' },
+      { id: 'k2', code: 'lib-1', name: 'Library kiosk', location: 'Ground floor', active: true, sessions_today: 3, url: '/k/lib-1' },
+      { id: 'k3', code: 'campus-2', name: 'Campus block B', location: 'Canteen side', active: false, sessions_today: 0, url: '/k/campus-2' },
     ],
     users: [
       { id: 1, name: 'Admin', email: 'admin@taprint.test', role: 'admin', created_at: iso(900 * 60 * MIN) },
@@ -145,14 +147,14 @@ const mock = {
     M.orders.forEach((o) => { by[o.status] = (by[o.status] || 0) + 1 })
     return { orders_today: M.orders.filter((o) => Date.now() - new Date(o.created_at) < 24 * 60 * MIN).length, paid_today: today.length, revenue_today_paise: today.reduce((s, o) => s + o.total_paise, 0), revenue_total_paise: paid.reduce((s, o) => s + o.total_paise, 0), active_sessions: M.sessions.filter((s) => s.status === 'active' || s.status === 'waiting').length, pending_payments: M.payments.filter((p) => p.status === 'pending').length, payments_needing_review: M.payments.filter((p) => p.review_reason).length, failed_conversions: 0, converting: 0, documents_due_for_purge: 2, documents_on_disk: 17, storage_bytes: 48_300_000, conversion_available: true, conversion_driver: 'none', payment_provider: 'fake', print_failed: M.orders.filter((o) => o.print_status === 'failed').length, orders_by_status: by }
   },
-  async orders(p = {}) { return page(M.orders.filter((o) => (!p.status || o.status === p.status) && (has(o.reference, p.q) || has(o.document_name, p.q))), p) },
+  async orders(p = {}) { return page(M.orders.filter((o) => (!p.status || o.status === p.status) && (!p.kiosk || o.kiosk === p.kiosk) && (has(o.reference, p.q) || has(o.document_name, p.q))), p) },
   async order(ref) {
     const o = M.orders.find((x) => x.reference === ref) || fail(404, 'Order not found.')
     return { ...o, settings: { copies: o.copies, paper_size: o.paper, color_mode: o.color, duplex: false, orientation: 'portrait', scaling: 'fit', pages_per_sheet: 1, page_range: '' }, pricing_snapshot: { pages_selected: o.pages, billable_sides: o.pages * o.copies }, document: { name: o.document_name, kind: o.document_name.split('.').pop(), page_count: o.pages, size_bytes: 240000, status: 'ready' }, session: { status: 'completed' }, payments: M.payments.filter((p) => p.order_reference === ref) }
   },
   async retryPrint(ref) { const o = M.orders.find((x) => x.reference === ref); if (o?.print_status !== 'failed') fail(409, 'Only a failed print can be retried.'); o.print_status = 'sent'; o.print_failure = null; log('print.retry', 'PrintOrder', { reference: ref }); return o },
   async cancelOrder(ref) { const o = M.orders.find((x) => x.reference === ref); if (o.status !== 'awaiting_payment') fail(409, 'Only an unpaid order can be cancelled.'); o.status = 'cancelled'; log('order.cancelled', 'PrintOrder', { reference: ref }); return o },
-  async payments(p = {}) { return page(M.payments.filter((x) => (!p.status || x.status === p.status) && (!p.needs_review || x.review_reason) && (has(x.order_reference, p.q) || has(x.provider_payment_id, p.q))), p) },
+  async payments(p = {}) { return page(M.payments.filter((x) => (!p.status || x.status === p.status) && (!p.kiosk || x.kiosk === p.kiosk) && (!p.needs_review || x.review_reason) && (has(x.order_reference, p.q) || has(x.provider_payment_id, p.q))), p) },
   async reconcile(id) { const x = M.payments.find((y) => y.id === id); log('payment.reconcile_requested', 'Payment'); return x },
   async sessions(p = {}) { return page(M.sessions.filter((s) => !p.status || s.status === p.status), p) },
   async revokeSession(id) { const s = M.sessions.find((x) => x.id === id); s.status = 'cancelled'; log('session.revoked', 'QrSession'); return s },
@@ -204,8 +206,31 @@ const mock = {
   },
   async newKioskKey(id) { const k = M.kiosks.find((x) => x.id === id); if (k) k.agent = { key_set: true, last_seen: null, online: false }; log('kiosk.agent_key_created', 'Kiosk', {}); return { key: 'tpa_' + 'demo0123456789abcdef0123456789abcdef01234567'.slice(0, 48) } },
   async testPrinter() { log('printer.test_sent', 'Printer', { driver: M.printer.driver }); return { ok: true, job_id: 'TEST.pdf', driver: M.printer.driver, note: 'Development driver: the PDF was saved to a folder, nothing was printed.' } },
-  async kiosks() { return structuredClone(M.kiosks) },
-  async createKiosk(b) { if (M.kiosks.some((k) => k.code === b.code)) fail(422, 'That code is already used.'); const k = { id: `k${Date.now()}`, ...b, active: true, sessions_today: 0, url: `/kiosk?k=${b.code}` }; M.kiosks.push(k); log('kiosk.created', 'Kiosk'); return k },
+  async kiosks() {
+    return M.kiosks.map((k) => {
+      const paid = M.orders.filter((o) => o.kiosk === k.code && o.status === 'paid')
+      return { ...structuredClone(k), paid_orders: paid.length, revenue_paise: paid.reduce((s, o) => s + o.total_paise, 0) }
+    })
+  },
+  async kioskSetup(id) { const k = M.kiosks.find((x) => x.id === id) || fail(404, 'Kiosk not found.'); k.agent = { key_set: true, last_seen: null, online: false }; log('kiosk.agent_setup_downloaded', 'Kiosk', {}); return new Blob(['demo mode: no real setup file'], { type: 'application/zip' }) },
+  async kiosk(code) {
+    const k = M.kiosks.find((x) => x.code === code) || fail(404, 'Kiosk not found.')
+    const orders = M.orders.filter((o) => o.kiosk === code)
+    const paid = orders.filter((o) => o.status === 'paid')
+    const sum = (list) => list.reduce((s, o) => s + o.total_paise, 0)
+    const by = {}
+    orders.forEach((o) => { by[o.status] = (by[o.status] || 0) + 1 })
+    return {
+      ...structuredClone(k),
+      stats: {
+        sessions_total: M.sessions.filter((s) => s.kiosk === code).length * 6, orders_by_status: by, orders_total: orders.length, paid_orders: paid.length,
+        revenue_total_paise: sum(paid), revenue_today_paise: sum(paid.filter((o) => Date.now() - new Date(o.paid_at) < 24 * 60 * MIN)), revenue_7d_paise: sum(paid.filter((o) => Date.now() - new Date(o.paid_at) < 7 * 24 * 60 * MIN)),
+        printed: paid.filter((o) => o.print_status === 'sent').length, print_failed: paid.filter((o) => o.print_status === 'failed').length, print_in_progress: 0, last_order_at: orders[0]?.created_at ?? null,
+      },
+      recent_orders: orders.slice(0, 10), recent_payments: M.payments.filter((p) => p.kiosk === code).slice(0, 10),
+    }
+  },
+  async createKiosk(b) { if (M.kiosks.some((k) => k.code === b.code)) fail(422, 'That code is already used.'); const k = { id: `k${Date.now()}`, ...b, active: true, sessions_today: 0, url: `/k/${b.code}` }; M.kiosks.push(k); log('kiosk.created', 'Kiosk'); return k },
   async updateKiosk(id, b) { const k = M.kiosks.find((x) => x.id === id); Object.assign(k, b); log('kiosk.updated', 'Kiosk'); return k },
   async sales({ from, to } = {}) { return salesFrom(M.orders, from, to) },
   async csv({ from, to } = {}) {

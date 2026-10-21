@@ -89,6 +89,50 @@ describe('printing from each shop PC', () => {
   })
 })
 
+describe('payment gateway screen', () => {
+  it('Test connection saves the typed keys first, then tests them', async () => {
+    app('/admin/payment'); await signIn()
+    fireEvent.change(await screen.findByLabelText('Payment provider', {}, { timeout: 8000 }), { target: { value: 'razorpay' } })
+    fireEvent.change(screen.getByLabelText(/Key ID/), { target: { value: 'rzp_test_abc12345' } })
+    fireEvent.change(screen.getByLabelText(/Key Secret/), { target: { value: 'secret-value-1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
+    expect(await screen.findByText(/Saved\. Demo mode: no request was sent to Razorpay/, {}, { timeout: 8000 })).toBeTruthy()
+  }, 20000)
+})
+
+describe('shop PC setup download', () => {
+  it('the kiosk list offers Download setup and gives a zip', async () => {
+    const blob = await adminApi.kioskSetup((await adminApi.kiosks())[0].id)
+    expect(blob.type).toBe('application/zip')
+    expect((await adminApi.kiosks())[0].agent.key_set).toBe(true) // a key now exists for that kiosk
+  })
+  it('is shown as a button on the printer and kiosks page for admins', async () => {
+    app('/admin/devices'); await signIn()
+    expect((await screen.findAllByRole('button', { name: 'Download setup' }, { timeout: 8000 })).length).toBeGreaterThan(0)
+  }, 20000)
+})
+
+describe('kiosk details', () => {
+  it('lists kiosks with sales and opens one with its orders and payments', async () => {
+    app('/admin/kiosks'); await signIn()
+    const link = await screen.findByRole('link', { name: /Demo kiosk/ }, { timeout: 8000 })
+    fireEvent.click(link)
+    expect(await screen.findByText('Latest orders', {}, { timeout: 8000 })).toBeTruthy()
+    expect(screen.getByText('Latest payments')).toBeTruthy()
+    expect(screen.getByText('Revenue today')).toBeTruthy()
+  })
+  it('orders and payments can be filtered by kiosk', async () => {
+    const all = await adminApi.orders({ per_page: 100 })
+    const one = await adminApi.orders({ kiosk: 'lib-1', per_page: 100 })
+    expect(one.data.length).toBeGreaterThan(0)
+    expect(one.data.length).toBeLessThan(all.data.length)
+    expect(one.data.every((o) => o.kiosk === 'lib-1')).toBe(true)
+    const pays = await adminApi.payments({ kiosk: 'lib-1', per_page: 100 })
+    expect(pays.data.length).toBeGreaterThan(0)
+    expect(pays.data.every((p) => p.kiosk === 'lib-1')).toBe(true)
+  })
+})
+
 describe('payment gateway and printer settings', () => {
   it('Razorpay cannot be chosen until all three keys are saved', async () => {
     await expect(adminApi.saveIntegrations({ payment_provider: 'razorpay' })).rejects.toThrow(/Razorpay Key ID, Razorpay Key Secret\./)

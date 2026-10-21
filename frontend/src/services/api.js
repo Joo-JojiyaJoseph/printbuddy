@@ -63,7 +63,7 @@ function upload(path, { token, file, onProgress }) {
 }
 
 const real = {
-  createSession: (kioskId) => http(`/kiosks/${kioskId}/sessions`, { method: 'POST' }),
+  createSession: (kioskId) => http(`/kiosks/${encodeURIComponent(kioskId)}/sessions`, { method: 'POST' }),
   getSession: (token, { claim = false } = {}) => http(`/sessions/current${claim ? '?claim=1' : ''}`, { token, kiosk: !claim }),
   endSession: (token) => http('/sessions/current/end', { token, method: 'POST', kiosk: true, timeout: 6000 }),
   listDocuments: (token) => http('/documents', { token }),

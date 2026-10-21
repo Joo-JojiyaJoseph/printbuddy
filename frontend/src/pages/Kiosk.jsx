@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import Backdrop from '../components/ui/Backdrop'
 import HelpButton from '../components/HelpGuide'
@@ -15,8 +16,9 @@ export default function Kiosk() {
   const left = useCountdown(session?.expires_at)
 
   // Refreshing this screen must not disturb the person who is printing, so the current code is remembered here and picked up again.
-  const kioskId = new URLSearchParams(window.location.search).get('k') || 'demo'
-  const memory = `taprint.screen.${kioskId}`
+  const { code } = useParams()
+  const kioskId = (code || new URLSearchParams(window.location.search).get('k') || 'demo').trim()
+  const memory = `taprint.screen.${kioskId.toLowerCase()}`
   const remember = (s) => { try { s ? localStorage.setItem(memory, JSON.stringify({ token: s.token, expires_at: s.expires_at })) : localStorage.removeItem(memory) } catch { /* private mode: nothing to remember */ } }
   const starting = useRef(false)
   const start = useCallback(async (fresh = false) => {
@@ -104,7 +106,7 @@ export default function Kiosk() {
         {phase === 'error' && (
           <div role="alert" className="rounded-2xl bg-[#ffe9ee] p-3.5 text-danger">
             <p className="m-0 font-bold">We couldn't show the code just now.</p>
-            <p className="m-0 mt-1 text-sm">{problem === 404 ? 'This printer is switched off. Ask the owner to switch it on in the admin page.'
+            <p className="m-0 mt-1 text-sm">{problem === 404 ? 'This screen is not set up, or it is switched off. Please ask the shop staff.'
               : problem === 429 ? 'Too many tries in a short time. Please wait a minute. We will try again by ourselves.'
               : problem === 0 ? 'The printer service cannot be reached. Check that the internet and the server are on. We will try again by ourselves.'
               : 'Something went wrong on our side. We will try again by ourselves in a few seconds.'}</p>

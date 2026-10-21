@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { adminApi } from '../adminApi'
 import { formatINR } from '../../utils/format'
 import { useAdmin } from '../AdminApp'
@@ -7,13 +8,16 @@ import { Badge, Btn, Field, Loading, Notice, PageHead, Panel, Pager, Table, dt, 
 export default function Payments() {
   const { canOperate } = useAdmin()
   const [q, setQ] = useState('')
+  const [sp, setSp] = useSearchParams()
   const [status, setStatus] = useState('')
+  const [kiosk, setKiosk] = useState(sp.get('kiosk') || '')
+  const kiosks = useLoad(() => adminApi.kiosks())
   const [review, setReview] = useState(false)
   const [page, setPage] = useState(1)
   const [busy, setBusy] = useState('')
   const [msg, setMsg] = useState(null)
   const dq = useDebounced(q)
-  const list = useLoad(() => adminApi.payments({ q: dq, status, needs_review: review, page, per_page: 12 }), [dq, status, review, page])
+  const list = useLoad(() => adminApi.payments({ q: dq, status, kiosk, needs_review: review, page, per_page: 12 }), [dq, status, kiosk, review, page])
   const reconcile = async (id) => {
     setBusy(id); setMsg(null)
     try { await adminApi.reconcile(id); setMsg({ tone: 'good', text: 'Checked with the payment provider.' }); list.reload() } catch (e) { setMsg({ tone: 'bad', text: e.message }) } finally { setBusy('') }
@@ -22,9 +26,10 @@ export default function Payments() {
     <>
       <PageHead title="Payments" sub="Payment status is confirmed by the server with the payment provider, never by the customer’s phone." />
       <Panel>
-        <div className="mb-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem_auto] sm:items-end">
+        <div className="mb-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem_12rem_auto] sm:items-end">
           <Field label="Search"><input className={inputCls} placeholder="Order number or payment id" value={q} onChange={(e) => { setQ(e.target.value); setPage(1) }} /></Field>
           <Field label="Status"><select className={inputCls} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}><option value="">All</option>{['pending', 'succeeded', 'failed', 'expired'].map((s) => <option key={s}>{s}</option>)}</select></Field>
+          <Field label="Kiosk"><select className={inputCls} value={kiosk} onChange={(e) => { setKiosk(e.target.value); setPage(1); setSp(e.target.value ? { kiosk: e.target.value } : {}) }}><option value="">All kiosks</option>{(kiosks.data || []).map((k) => <option key={k.code} value={k.code}>{k.name}</option>)}</select></Field>
           <label className="flex min-h-9 items-center gap-2 text-sm"><input type="checkbox" checked={review} onChange={(e) => { setReview(e.target.checked); setPage(1) }} />Needs review</label>
         </div>
         {msg && <div className="mb-3"><Notice tone={msg.tone}>{msg.text}</Notice></div>}
@@ -32,6 +37,7 @@ export default function Payments() {
           <>
             <Table rows={list.data.data} rowKey={(r) => r.id} empty="No payments match." cols={[
               { key: 'order_reference', label: 'Order', render: (r) => <span className="font-semibold">{r.order_reference}</span> },
+              { key: 'kiosk', label: 'Kiosk' },
               { key: 'amount_paise', label: 'Amount', render: (r) => formatINR(r.amount_paise) },
               { key: 'status', label: 'Status', render: (r) => <Badge>{r.status}</Badge> },
               { key: 'provider', label: 'Provider', render: (r) => `${r.provider} · ${r.provider_payment_id ?? ''}` },

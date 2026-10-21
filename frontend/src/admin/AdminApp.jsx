@@ -16,6 +16,7 @@ const Pricing = lazy(() => import('./pages/Pricing'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
 const Activity = lazy(() => import('./pages/Activity'))
+const Kiosks = lazy(() => import('./pages/Kiosks'))
 
 const AdminCtx = createContext(null)
 export const useAdmin = () => useContext(AdminCtx)
@@ -25,6 +26,7 @@ const NAV = [
   { to: 'orders', label: 'Orders', icon: ClipboardList },
   { to: 'payments', label: 'Payments', icon: CreditCard },
   { to: 'sessions', label: 'QR sessions', icon: QrCode },
+  { to: 'kiosks', label: 'Kiosks', icon: Monitor },
   { to: 'devices', label: 'Printer & kiosks', icon: Printer },
   { to: 'reports', label: 'Reports', icon: BarChart3 },
   { to: 'payment', label: 'Payment gateway', icon: Wallet, admin: true },
@@ -86,6 +88,8 @@ function Shell({ user, onLogout }) {
               <Route path="orders" element={<Orders />} />
               <Route path="payments" element={<Payments />} />
               <Route path="sessions" element={<Sessions />} />
+              <Route path="kiosks" element={<Kiosks />} />
+              <Route path="kiosks/:code" element={<Kiosks />} />
               <Route path="devices" element={<Devices />} />
               <Route path="reports" element={<Reports />} />
               <Route path="payment" element={user.role === 'admin' ? <PaymentGateway /> : <Navigate to="/admin" replace />} />

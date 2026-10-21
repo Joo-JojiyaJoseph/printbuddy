@@ -54,19 +54,26 @@ export default function Orders() {
   const [sp, setSp] = useSearchParams()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState(sp.get('status') || '')
+  const [kiosk, setKiosk] = useState(sp.get('kiosk') || '')
+  const kiosks = useLoad(() => adminApi.kiosks())
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(null)
   const dq = useDebounced(q)
-  const list = useLoad(() => adminApi.orders({ q: dq, status, page, per_page: 12 }), [dq, status, page])
+  const list = useLoad(() => adminApi.orders({ q: dq, status, kiosk, page, per_page: 12 }), [dq, status, kiosk, page])
   return (
     <>
       <PageHead title="Orders" sub="Every print order, newest first. Click a row for details." />
       <Panel>
-        <div className="mb-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+        <div className="mb-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_12rem]">
           <Field label="Search"><input className={inputCls} placeholder="Order number or file name" value={q} onChange={(e) => { setQ(e.target.value); setPage(1) }} /></Field>
           <Field label="Status">
-            <select className={inputCls} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); setSp(e.target.value ? { status: e.target.value } : {}) }}>
+            <select className={inputCls} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); setSp({ ...(e.target.value ? { status: e.target.value } : {}), ...(kiosk ? { kiosk } : {}) }) }}>
               <option value="">All</option>{STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+            </select>
+          </Field>
+          <Field label="Kiosk">
+            <select className={inputCls} value={kiosk} onChange={(e) => { setKiosk(e.target.value); setPage(1); setSp({ ...(status ? { status } : {}), ...(e.target.value ? { kiosk: e.target.value } : {}) }) }}>
+              <option value="">All kiosks</option>{(kiosks.data || []).map((k) => <option key={k.code} value={k.code}>{k.name}</option>)}
             </select>
           </Field>
         </div>
