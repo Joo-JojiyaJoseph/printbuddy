@@ -6,7 +6,7 @@ namespace App\Support;
 final class IntegrationRules
 {
     public const PAYMENT_PROVIDERS = ['fake', 'razorpay'];
-    public const PRINT_DRIVERS = ['file', 'cups', 'sumatra'];
+    public const PRINT_DRIVERS = ['file', 'cups', 'sumatra', 'agent'];
 
     /** Program each path field may point to (file name without .exe, case-insensitive). */
     public const BINARIES = ['sumatra_path' => 'sumatrapdf', 'lp_path' => 'lp', 'pdftoppm_path' => 'pdftoppm'];

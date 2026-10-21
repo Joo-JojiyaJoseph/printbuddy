@@ -45,6 +45,11 @@ class OrderController extends Controller
         // After 3 minutes without progress say so, so the customer sees a clear message and staff can use Retry print.
         PrintJob::query()
             ->where('print_order_id', $order->id)
+            ->where('status', PrintJob::WAITING)
+            ->where('updated_at', '<', now()->subMinutes(3))
+            ->update(['status' => PrintJob::FAILED, 'failure_reason' => 'The shop print computer did not collect this job. Make sure it is on and the Taprint print program is running, then use Retry print.']);
+        PrintJob::query()
+            ->where('print_order_id', $order->id)
             ->whereIn('status', PrintJob::IN_FLIGHT)
             ->where('updated_at', '<', now()->subMinutes(3))
             ->update(['status' => PrintJob::FAILED, 'failure_reason' => 'Printing did not finish in time. Check the printer, then use Retry print.']);

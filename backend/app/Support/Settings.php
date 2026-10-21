@@ -33,6 +33,7 @@ class Settings
         'razorpay_key_id' => 'nullable|string|max:80',
         'razorpay_key_secret' => 'nullable|string|max:600',
         'razorpay_webhook_secret' => 'nullable|string|max:600',
+        'agent_key_hash' => 'nullable|string|max:80', // sha256 of the print-agent key; set from Admin > Printers
         'print_driver' => 'nullable|string|max:20',
         'sumatra_path' => 'nullable|string|max:300',
         'lp_path' => 'nullable|string|max:300',

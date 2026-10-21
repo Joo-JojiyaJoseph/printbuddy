@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\ApiProblem;
+use App\Http\Middleware\AuthenticateAgent;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\ResolveQrSession;
 use App\Http\Middleware\SecurityHeaders;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'qr.session' => ResolveQrSession::class,
             'role' => EnsureRole::class,
+            'agent.key' => AuthenticateAgent::class,
         ]);
         // Webhook bodies are verified by signature, never by a CSRF token.
         $middleware->validateCsrfTokens(except: ['api/*']);

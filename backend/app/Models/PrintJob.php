@@ -15,15 +15,16 @@ class PrintJob extends Model
     public const SENDING = 'sending';
     public const SENT = 'sent';
     public const FAILED = 'failed';
+    public const WAITING = 'waiting'; // prepared, waiting for the shop PC print agent
 
     /** Statuses in which the job is still being worked on (documents must not be purged). */
-    public const IN_FLIGHT = [self::QUEUED, self::PREPARING, self::SENDING];
+    public const IN_FLIGHT = [self::QUEUED, self::PREPARING, self::WAITING, self::SENDING];
 
-    protected $fillable = ['print_order_id', 'status', 'attempts', 'driver', 'printer_job_id', 'pages', 'failure_reason', 'sent_at'];
+    protected $fillable = ['print_order_id', 'status', 'attempts', 'driver', 'printer_job_id', 'pages', 'failure_reason', 'agent_file', 'agent_meta', 'sent_at', 'claimed_at'];
 
     protected function casts(): array
     {
-        return ['attempts' => 'integer', 'pages' => 'integer', 'sent_at' => 'datetime'];
+        return ['attempts' => 'integer', 'pages' => 'integer', 'sent_at' => 'datetime', 'claimed_at' => 'datetime', 'agent_meta' => 'array'];
     }
 
     public function order(): BelongsTo

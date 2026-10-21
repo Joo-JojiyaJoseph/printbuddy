@@ -86,3 +86,8 @@ page links like `/s/<code>/upload` work and adds browser security headers).
 * `https://api.yourdomain.com/up` shows OK.
 * `https://yourdomain.com/kiosk` shows a QR code; scan it with a phone and upload a PDF.
 * If you see a blank page or CORS error, `FRONTEND_URL` must exactly match the website address (https, no trailing slash).
+
+## Printing from a hosted site
+cPanel/AWS cannot reach a printer in your shop. In the admin panel choose **Print from the shop PC** and run the small
+`print-agent` program on the shop's Windows PC (it uses that PC's printer and SumatraPDF). No printer or Windows paths are needed on the
+server. Run `php artisan migrate --force` after uploading this update. Full steps: `print-agent/README.md`.

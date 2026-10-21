@@ -174,7 +174,7 @@ Setup (`backend/.env`):
 
 | Variable | Meaning |
 |---|---|
-| `PRINT_DRIVER` | `file` (dev: saves PDFs to `storage/app/printed`), `cups` (Linux/macOS `lp`), `sumatra` (Windows SumatraPDF). `file` is refused in production. |
+| `PRINT_DRIVER` | `file` (dev: saves PDFs to `storage/app/printed`), `cups` (Linux/macOS `lp`), `sumatra` (Windows SumatraPDF on the server), `agent` (print on the shop PC through `print-agent/`, best for hosted sites). `file` is refused in production. |
 | `PRINTER_NAME` | Printer name; empty = system default |
 | `LP_PATH`, `SUMATRA_PATH`, `PDFTOPPM_PATH` | Binary locations when not on PATH |
 

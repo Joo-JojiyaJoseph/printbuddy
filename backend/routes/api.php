@@ -85,6 +85,14 @@ Route::middleware('qr.session')->prefix('v1')->group(function () {
 // Provider webhooks: authenticated by signature inside the controller, not by session.
 Route::post('/v1/webhooks/{provider}', [WebhookController::class, 'handle'])->middleware('throttle:120,1');
 
+// The shop PC print program (authenticated by its own key, not by a user or QR session).
+Route::middleware(['agent.key', 'throttle:300,1'])->prefix('v1/agent')->group(function () {
+    Route::get('/ping', [\App\Http\Controllers\Api\V1\AgentController::class, 'ping']);
+    Route::post('/jobs/next', [\App\Http\Controllers\Api\V1\AgentController::class, 'next']);
+    Route::get('/jobs/{id}/file', [\App\Http\Controllers\Api\V1\AgentController::class, 'file']);
+    Route::post('/jobs/{id}/result', [\App\Http\Controllers\Api\V1\AgentController::class, 'result']);
+});
+
 // Administration.
 Route::prefix('v1/admin')->group(function () {
     Route::post('/login', [Admin\AuthController::class, 'login'])->middleware('throttle:admin-login');
@@ -124,6 +132,7 @@ Route::prefix('v1/admin')->group(function () {
         Route::put('/integrations', [Admin\IntegrationController::class, 'update']);
         Route::post('/integrations/payment/test', [Admin\IntegrationController::class, 'testPayment'])->middleware('throttle:heavy');
         Route::post('/kiosks', [Admin\KioskController::class, 'store']);
+        Route::post('/kiosks/{id}/agent-key', [Admin\KioskController::class, 'agentKey'])->middleware('throttle:heavy');
         Route::put('/kiosks/{id}', [Admin\KioskController::class, 'update']);
         Route::get('/users', [Admin\UserController::class, 'index']);
         Route::post('/users', [Admin\UserController::class, 'store']);

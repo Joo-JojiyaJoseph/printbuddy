@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PrintJob;
 use App\Services\Audit\AuditLogger;
-use App\Services\Printing\{PrinterDriver, PrinterInspector, PrintException, PrintTestPage, ShellRunner};
+use App\Services\Printing\{AgentKey, PrinterDriver, PrinterInspector, PrintException, PrintTestPage, ShellRunner};
 use App\Support\Integrations;
 use App\Support\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 /** Printer connection: what is configured, what the computer can see, choose a printer, send a test page. */
 class PrinterController extends Controller
@@ -63,6 +64,19 @@ class PrinterController extends Controller
         return $chosen !== '' ? $chosen : (string) app(Integrations::class)->printing()['printer'];
     }
 
+    private function agent(): array
+    {
+        $seen = Cache::get('agent.last_seen');
+        $at = $seen ? \Illuminate\Support\Carbon::parse($seen) : null;
+
+        return [
+            'key_set' => (string) $this->settings->get('agent_key_hash', '') !== '',
+            'last_seen' => $at?->toIso8601String(),
+            'online' => $at !== null && $at->gt(now()->subSeconds(30)),
+            'waiting' => PrintJob::query()->where('status', PrintJob::WAITING)->count(),
+        ];
+    }
+
     private function payload(PrinterDriver $driver): array
     {
         $c = app(Integrations::class)->printing();
@@ -81,6 +95,7 @@ class PrinterController extends Controller
             'installed_error' => $installed['error'],
             'printer_found' => $effective === '' || in_array($effective, $installed['names'], true),
             'poppler_available' => $poppler,
+            'agent' => $this->agent(),
             'jobs_24h' => [
                 'sent' => (clone $jobs)->where('status', PrintJob::SENT)->count(),
                 'failed' => (clone $jobs)->where('status', PrintJob::FAILED)->count(),

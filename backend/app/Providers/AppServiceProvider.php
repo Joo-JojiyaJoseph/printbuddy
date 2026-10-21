@@ -64,6 +64,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return match ($c['driver']) {
+                'agent' => new \App\Services\Printing\AgentPrinter(),
                 'cups' => new CupsPrinter((string) $c['lp_path'], (string) $c['printer'], (int) $c['timeout_seconds']),
                 'sumatra' => new SumatraPrinter((string) $c['sumatra_path'], (string) $c['printer'], (int) $c['timeout_seconds']),
                 default => new FilePrinter($c['output_dir'] !== '' ? (string) $c['output_dir'] : storage_path('app/printed')),

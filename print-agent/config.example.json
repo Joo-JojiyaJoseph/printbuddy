@@ -1,0 +1,7 @@
+{
+  "server": "https://taprint-backend.webfolks.in",
+  "key": "tpa_paste_the_key_from_the_admin_panel",
+  "sumatraPath": "",
+  "printerName": "",
+  "pollSeconds": 2
+}

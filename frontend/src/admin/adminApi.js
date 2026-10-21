@@ -53,6 +53,7 @@ const real = {
   printer: () => d('/printer'),
   selectPrinter: (name) => d('/printer', { method: 'PUT', body: { printer_name: name } }),
   testPrinter: () => d('/printer/test', { method: 'POST' }),
+  newKioskKey: (id) => d(`/kiosks/${id}/agent-key`, { method: 'POST' }),
   kiosks: () => d('/kiosks'),
   createKiosk: (b) => d('/kiosks', { method: 'POST', body: b }),
   updateKiosk: (id, b) => d(`/kiosks/${id}`, { method: 'PUT', body: b }),
@@ -109,7 +110,7 @@ const seed = () => {
       { id: 2, name: 'Shop operator', email: 'operator@taprint.test', role: 'operator', created_at: iso(300 * 60 * MIN) },
       { id: 3, name: 'Accounts', email: 'accounts@taprint.test', role: 'viewer', created_at: iso(100 * 60 * MIN) },
     ],
-    printer: { driver: 'file', driver_available: true, production_ready: false, printer: null, printer_from: 'default', installed_printers: ['HP LaserJet Pro M404', 'Canon MG3600 series', 'Microsoft Print to PDF'], installed_error: null, printer_found: true, poppler_available: true, jobs_24h: { sent: 11, failed: 1, in_progress: 0 }, recent_failures: [{ reference: 'TP-04805', reason: 'The printer did not accept the job.', at: iso(200 * MIN) }], scanner: { hardware_supported: false, note: 'Customers scan with their phone camera (uploaded as a photo). A USB/network scanner needs a small local agent and is not part of this build.' } },
+    printer: { driver: 'file', driver_available: true, production_ready: false, printer: null, printer_from: 'default', installed_printers: ['HP LaserJet Pro M404', 'Canon MG3600 series', 'Microsoft Print to PDF'], installed_error: null, printer_found: true, poppler_available: true, agent: { key_set: false, last_seen: null, online: false, waiting: 0 }, jobs_24h: { sent: 11, failed: 1, in_progress: 0 }, recent_failures: [{ reference: 'TP-04805', reason: 'The printer did not accept the job.', at: iso(200 * MIN) }], scanner: { hardware_supported: false, note: 'Customers scan with their phone camera (uploaded as a photo). A USB/network scanner needs a small local agent and is not part of this build.' } },
     integrations: { provider: 'fake', key_id: '', key_secret_set: false, webhook_secret_set: false, print_driver: 'file', sumatra_path: '', lp_path: '', pdftoppm_path: '' },
     pricing: { rates: [{ id: 1, paper_size: 'A4', color_mode: 'bw', per_side_paise: 200, active: true }, { id: 2, paper_size: 'A4', color_mode: 'color', per_side_paise: 800, active: true }, { id: 3, paper_size: 'A5', color_mode: 'bw', per_side_paise: 120, active: true }, { id: 4, paper_size: 'A5', color_mode: 'color', per_side_paise: 500, active: true }], duplex_discount_bps: 1000, service_fee_paise: 0, tax_bps: 0, paper_sizes: ['A4', 'A5', 'Letter'], billing_policy: 'per printed side; duplex discount applies per side; tax on subtotal + fee' },
     settings: { session_ttl_minutes: 15, payment_ttl_minutes: 5, document_retention_hours: 24, max_upload_mb: 25, max_files: 10, max_pages: 500, max_copies: 100, allowed_types: ['pdf', 'jpg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'], paper_sizes: ['A4', 'A5', 'Letter'], all_types: ['pdf', 'jpg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'], conversion_driver: 'libreoffice', conversion_available: true, conversion_driver: 'none', payment_provider: 'fake' },
@@ -201,6 +202,7 @@ const mock = {
     M.printer.printer = name || null; M.printer.printer_from = name ? 'admin' : 'default'; M.printer.printer_found = !name || M.printer.installed_printers.includes(name)
     log('printer.selected', 'Printer', { after: name }); return structuredClone(M.printer)
   },
+  async newKioskKey(id) { const k = M.kiosks.find((x) => x.id === id); if (k) k.agent = { key_set: true, last_seen: null, online: false }; log('kiosk.agent_key_created', 'Kiosk', {}); return { key: 'tpa_' + 'demo0123456789abcdef0123456789abcdef01234567'.slice(0, 48) } },
   async testPrinter() { log('printer.test_sent', 'Printer', { driver: M.printer.driver }); return { ok: true, job_id: 'TEST.pdf', driver: M.printer.driver, note: 'Development driver: the PDF was saved to a folder, nothing was printed.' } },
   async kiosks() { return structuredClone(M.kiosks) },
   async createKiosk(b) { if (M.kiosks.some((k) => k.code === b.code)) fail(422, 'That code is already used.'); const k = { id: `k${Date.now()}`, ...b, active: true, sessions_today: 0, url: `/kiosk?k=${b.code}` }; M.kiosks.push(k); log('kiosk.created', 'Kiosk'); return k },

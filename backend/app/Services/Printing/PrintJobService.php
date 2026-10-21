@@ -44,6 +44,9 @@ class PrintJobService
             if ($job->status === PrintJob::SENT) {
                 return null;
             }
+            if ($job->status === PrintJob::WAITING) {
+                return null; // already prepared and waiting for the shop PC
+            }
             if ($job->status === PrintJob::SENDING) {
                 // A worker died between handing the file over and recording it: we can't tell whether it printed.
                 // Reprinting could double-print, so hand it to staff.
@@ -67,8 +70,13 @@ class PrintJobService
                 throw new PrintException('The printer is not set up on this machine.', retryable: false);
             }
             [$file, $tmp, $pages, $direct] = $this->prepareFile($order);
-            $job->forceFill(['status' => PrintJob::SENDING, 'pages' => $pages])->save();
             $settings = $order->print_settings;
+            if ($this->driver instanceof DeferredPrinter) {
+                $this->handOverToAgent($job, $order, $file, $pages);
+
+                return;
+            }
+            $job->forceFill(['status' => PrintJob::SENDING, 'pages' => $pages])->save();
             $jobId = $this->driver->send($file, [
                 'reference' => $order->reference,
                 'title' => 'Taprint '.$order->reference,
@@ -97,6 +105,59 @@ class PrintJobService
         }
     }
 
+    /** Keep the prepared PDF in private storage until the shop PC collects it. */
+    private function handOverToAgent(PrintJob $job, PrintOrder $order, string $file, int $pages): void
+    {
+        $rel = 'agent-spool/'.$job->id.'.pdf';
+        $in = fopen($file, 'rb');
+        if ($in === false || ! Storage::disk(config('printbuddy.documents_disk'))->put($rel, $in)) {
+            throw new PrintException('The print file could not be stored for the shop computer.', retryable: true);
+        }
+        fclose($in);
+        $s = (array) $order->print_settings;
+        $job->forceFill([
+            'status' => PrintJob::WAITING,
+            'pages' => $pages,
+            'agent_file' => $rel,
+            'agent_meta' => [
+                'reference' => $order->reference,
+                'title' => 'Taprint '.$order->reference,
+                'copies' => max(1, (int) ($s['copies'] ?? 1)),
+                'color' => ($s['color_mode'] ?? 'bw') === 'color',
+                'duplex' => (bool) ($s['duplex'] ?? false),
+                'landscape' => ($s['orientation'] ?? 'portrait') === 'landscape',
+                'paper' => (string) ($s['paper_size'] ?? 'A4'),
+            ],
+        ])->save();
+        $this->audit->log('print.waiting_for_agent', $job, ['order' => $order->reference, 'pages' => $pages]);
+    }
+
+    /** The shop PC reports back. Success: sent. Failure: needs staff (we cannot tell whether paper came out). */
+    public function agentFinished(PrintJob $job, bool $ok, ?string $printerJobId, ?string $message): void
+    {
+        $order = PrintOrder::query()->find($job->print_order_id);
+        if ($ok) {
+            $job->forceFill(['status' => PrintJob::SENT, 'printer_job_id' => $printerJobId ? mb_substr($printerJobId, 0, 100) : null, 'sent_at' => now(), 'failure_reason' => null])->save();
+            if ($order !== null) {
+                $this->scheduleErase($order);
+            }
+            $this->audit->log('print.sent', $job, ['order' => $order?->reference, 'pages' => $job->pages, 'driver' => 'agent']);
+        } else {
+            $reason = AgentKey::cleanMessage($message);
+            $job->forceFill(['status' => PrintJob::FAILED, 'failure_reason' => 'The shop printer reported a problem'.($reason !== '' ? ': '.$reason : '.')])->save();
+            $this->audit->log('print.failed', $job, ['order' => $order?->reference, 'reason' => $reason]);
+        }
+        $this->discardSpool($job);
+    }
+
+    public function discardSpool(PrintJob $job): void
+    {
+        if ($job->agent_file) {
+            Storage::disk(config('printbuddy.documents_disk'))->delete($job->agent_file);
+            $job->forceFill(['agent_file' => null])->save();
+        }
+    }
+
     /** Privacy: shorten the retention of this session's files so they disappear shortly after a successful print. */
     private function scheduleErase(PrintOrder $order): void
     {
@@ -119,6 +180,7 @@ class PrintJobService
         if ($job->status === PrintJob::SENT) {
             throw new \InvalidArgumentException('This order has already been sent to the printer.');
         }
+        $this->discardSpool($job);
         $job->forceFill(['status' => PrintJob::QUEUED, 'failure_reason' => null])->save();
         $this->audit->log('print.retry', $job, ['order' => $order->reference], $userId);
 

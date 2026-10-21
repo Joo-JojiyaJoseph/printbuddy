@@ -75,6 +75,20 @@ describe('printer screen', () => {
   })
 })
 
+describe('printing from each shop PC', () => {
+  it('agent mode hides server printer checks; each kiosk gets its own key, shown once', async () => {
+    await adminApi.saveIntegrations({ print_driver: 'agent' })
+    app('/admin/devices'); await signIn()
+    expect(await screen.findByText(/Printing on each shop/, {}, { timeout: 8000 })).toBeTruthy()
+    expect(screen.getByText(/No shop PC print program is connected/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Print test page' })).toBeNull()
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Print key' }))[0])
+    const key = await screen.findByTestId('agent-key')
+    expect(key.textContent).toMatch(/^tpa_/)
+    expect(screen.getByText(/shown only once/)).toBeTruthy()
+  })
+})
+
 describe('payment gateway and printer settings', () => {
   it('Razorpay cannot be chosen until all three keys are saved', async () => {
     await expect(adminApi.saveIntegrations({ payment_provider: 'razorpay' })).rejects.toThrow(/Razorpay Key ID, Razorpay Key Secret\./)

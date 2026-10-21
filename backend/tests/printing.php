@@ -265,3 +265,23 @@ check('overlong text refused', $bm(['t' => 'text', 'x' => 0, 'y' => 0, 'w' => .1
 check('positions are clamped into the page', PagePlan::normalize(['pages' => [['src' => 1, 'marks' => [['t' => 'cover', 'x' => .9, 'y' => 2, 'w' => .9, 'h' => .1]]]]], 3, 'pdf', [], 'A', 500)['pages'][0]['marks'][0]['x'] === 0.9);
 $many = array_fill(0, 61, ['t' => 'cover', 'x' => 0, 'y' => 0, 'w' => .1, 'h' => .1]);
 check('too many marks refused', (function () use ($many) { try { PagePlan::normalize(['pages' => [['src' => 1, 'marks' => $many]]], 3, 'pdf', [], 'A', 500); return false; } catch (InvalidArgumentException) { return true; } })());
+
+echo "\n-- shop PC print agent --\n";
+require_once __DIR__ . '/../app/Services/Printing/DeferredPrinter.php';
+require_once __DIR__ . '/../app/Services/Printing/AgentPrinter.php';
+require_once __DIR__ . '/../app/Services/Printing/AgentKey.php';
+require_once __DIR__ . '/../app/Support/IntegrationRules.php';
+use App\Services\Printing\{AgentKey, AgentPrinter, DeferredPrinter};
+$k = AgentKey::generate();
+$h = AgentKey::hash($k);
+check('agent key looks right and is unique', str_starts_with($k, 'tpa_') && strlen($k) === 52 && $k !== AgentKey::generate());
+check('agent key matches its hash', AgentKey::valid($k, $h));
+check('wrong or empty agent key rejected', !AgentKey::valid($k.'x', $h) && !AgentKey::valid('', $h) && !AgentKey::valid(AgentKey::generate(), $h));
+check('no key saved means nobody is accepted', !AgentKey::valid($k, ''));
+check('a key without the prefix is rejected even if the hash matches', !AgentKey::valid('abc', AgentKey::hash('abc')));
+check('agent messages are cleaned and capped', AgentKey::cleanMessage("a\r\nb\x00c") === 'a b c' && mb_strlen(AgentKey::cleanMessage(str_repeat('x', 500))) === 160);
+$agent = new AgentPrinter();
+check('agent driver is deferred, not a local printer', $agent instanceof DeferredPrinter && $agent->name() === 'agent' && $agent->available());
+$refused = false; try { $agent->send('/x.pdf', []); } catch (\App\Services\Printing\PrintException $e) { $refused = true; }
+check('agent driver refuses direct sends with a clear message', $refused);
+check('agent is an allowed driver', in_array('agent', \App\Support\IntegrationRules::PRINT_DRIVERS, true));

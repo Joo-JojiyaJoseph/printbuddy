@@ -14,6 +14,15 @@ function Check({ ok, label, detail }) {
   )
 }
 
+function AgentSetup({ agent }) {
+  return (
+    <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--hi)] p-3 text-sm">
+      <p className="m-0 font-semibold">Printing on each shop’s own PC</p>
+      <p className="m-0 mt-1 text-xs text-[var(--muted)]">Every kiosk has its own print key. Orders started at a kiosk print only on that shop’s PC, with that PC’s printer and SumatraPDF. Create each shop’s key in the <b>Kiosks</b> list below. This server needs no printer or Windows paths. {agent.waiting > 0 ? `${agent.waiting} job(s) waiting.` : ''}</p>
+    </div>
+  )
+}
+
 function PrinterPanel() {
   const { canOperate, isAdmin } = useAdmin()
   const { data: p, loading, error, reload } = useLoad(() => adminApi.printer())
@@ -30,19 +39,22 @@ function PrinterPanel() {
     <Panel title="Printer connection" action={<Badge tone={p.production_ready ? 'good' : 'warn'}>{p.production_ready ? `driver: ${p.driver}` : 'development driver'}</Badge>}>
       {!p.production_ready && <div className="mb-3"><Notice tone="warn">The server is saving PDFs to a folder instead of printing. Under <b>Connection settings</b> choose <b>SumatraPDF</b> (Windows) or <b>CUPS</b> (Linux/macOS) to print for real.</Notice></div>}
       <ul className="m-0 mb-4 grid list-none gap-2.5 p-0">
-        <Check ok={p.driver_available} label="Print program found" detail={p.driver_available ? `Driver “${p.driver}” is ready.` : 'Not found on the server computer. Install it, then paste its full path under Connection settings.'} />
+        {p.driver === 'agent'
+          ? <Check ok={p.agent.online} label={p.agent.online ? 'A shop PC print program is running' : 'No shop PC print program is connected'} detail={p.agent.online ? `Last contact ${dt(p.agent.last_seen)}.` : p.agent.key_set ? `Start “Taprint Print Agent” on the shop PC.${p.agent.last_seen ? ` Last seen ${dt(p.agent.last_seen)}.` : ''}` : 'Create a print key for each kiosk in the Kiosks list below, then set up the program on that shop’s PC.'} />
+          : <Check ok={p.driver_available} label="Print program found" detail={p.driver_available ? `Driver “${p.driver}” is ready.` : 'Not found on the server computer. Install it, then paste its full path under Connection settings.'} />}
         <Check ok={p.poppler_available} label="Poppler (page rendering) found" detail={p.poppler_available ? undefined : 'Not found. Install Poppler, then paste the path to pdftoppm under Connection settings. Needed for edited pages and pages per sheet.'} />
-        <Check ok={p.printer_found} label={p.printer ? `Printer “${p.printer}” is installed` : 'Using the system default printer'} detail={p.installed_error || (p.printer_from === 'env' ? 'Name comes from PRINTER_NAME in .env' : p.printer_from === 'admin' ? 'Chosen here in the admin panel' : undefined)} />
+        {p.driver !== 'agent' && <Check ok={p.printer_found} label={p.printer ? `Printer “${p.printer}” is installed` : 'Using the system default printer'} detail={p.installed_error || (p.printer_from === 'env' ? 'Name comes from PRINTER_NAME in .env' : p.printer_from === 'admin' ? 'Chosen here in the admin panel' : undefined)} />}
       </ul>
-      <Field label="Printer to use" hint={p.installed_printers.length ? 'Printers installed on the server computer. Leave empty for the system default.' : 'No printers were detected. You can still type a name exactly as the system shows it.'}>
+      {p.driver === 'agent' && <AgentSetup agent={p.agent} />}
+      {p.driver !== 'agent' && <Field label="Printer to use" hint={p.installed_printers.length ? 'Printers installed on the server computer. Leave empty for the system default.' : 'No printers were detected. You can still type a name exactly as the system shows it.'}>
         <div className="flex gap-2">
           <input className={inputCls} list="printers" value={value} disabled={!isAdmin} onChange={(e) => setChoice(e.target.value)} placeholder="System default" />
           <datalist id="printers">{p.installed_printers.map((n) => <option key={n} value={n} />)}</datalist>
           {isAdmin && <Btn variant="solid" loading={busy === 'save'} disabled={choice === null} onClick={() => run('save', () => adminApi.selectPrinter(value.trim()), () => 'Printer saved.')}>Save</Btn>}
         </div>
-      </Field>
+      </Field>}
       {msg && <div className="mt-3"><Notice tone={msg.tone}>{msg.text}</Notice></div>}
-      {canOperate && (
+      {canOperate && p.driver !== 'agent' && (
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Btn variant="solid" loading={busy === 'test'} onClick={() => run('test', () => adminApi.testPrinter(), (r) => r.note)}>Print test page</Btn>
           <span className="text-xs text-[var(--muted)]">Prints one page with the same settings as real orders.</span>
@@ -74,7 +86,7 @@ function ConnectionPanel({ onSaved }) {
   const pr = data.printing
   const save = async () => {
     setBusy(true); setMsg(null); setFieldErr({})
-    try { await adminApi.saveIntegrations(f); setMsg({ tone: 'good', text: 'Saved.' }); reload(); onSaved() } catch (e) { setMsg({ tone: 'bad', text: e.message }); setFieldErr(e.errors || {}) } finally { setBusy(false) }
+    try { await adminApi.saveIntegrations(f.print_driver === 'agent' ? { ...f, sumatra_path: '', lp_path: '' } : f); setMsg({ tone: 'good', text: 'Saved.' }); reload(); onSaved() } catch (e) { setMsg({ tone: 'bad', text: e.message }); setFieldErr(e.errors || {}) } finally { setBusy(false) }
   }
   const path = (k, label, found, hint) => (
     <Field label={label} hint={found ? `Found: ${found}` : hint}>
@@ -85,10 +97,11 @@ function ConnectionPanel({ onSaved }) {
   return (
     <Panel title="Connection settings" action={<Badge tone={pr.from === 'admin' ? 'info' : 'mute'}>{pr.from === 'admin' ? 'saved here' : 'from .env'}</Badge>}>
       <div className="grid gap-3">
-        <Field label="How the server prints" hint={pr.os === 'Windows' ? 'On Windows choose SumatraPDF.' : 'On Linux or macOS choose CUPS.'}>
+        <Field label="How the server prints" hint={f.print_driver === 'agent' ? 'The shop PC’s own printer and SumatraPDF are used; nothing to set up on this server.' : pr.os === 'Windows' ? 'If this server is the shop PC, choose SumatraPDF.' : 'If this server is hosted online, choose “Print from the shop PC”.'}>
           <select className={inputCls} value={f.print_driver} onChange={(e) => setF({ ...f, print_driver: e.target.value })}>
             {!pr.production && <option value="file">Save PDFs to a folder (testing, nothing prints)</option>}
-            <option value="sumatra">SumatraPDF (Windows)</option>
+            <option value="agent">Print from the shop PC (use when hosted online)</option>
+            <option value="sumatra">SumatraPDF on this server (Windows)</option>
             <option value="cups">CUPS “lp” (Linux / macOS)</option>
           </select>
           {fieldErr.print_driver?.[0] && <span className="mt-1 block text-xs text-red-700">{fieldErr.print_driver[0]}</span>}
@@ -120,6 +133,11 @@ function Kiosks() {
   const { data, loading, error, reload } = useLoad(() => adminApi.kiosks())
   const [form, setForm] = useState({ code: '', name: '', location: '' })
   const [msg, setMsg] = useState(null)
+  const [newKey, setNewKey] = useState(null)
+  const makeKey = async (k) => {
+    if (k.agent?.key_set && !window.confirm(`Make a new print key for ${k.name}? The program on that shop PC stops working until you paste the new key into it.`)) return
+    try { const r = await adminApi.newKioskKey(k.id); setNewKey({ name: k.name, key: r.key }); reload() } catch (x) { setMsg({ tone: 'bad', text: x.message }) }
+  }
   const add = async (e) => {
     e.preventDefault(); setMsg(null)
     try { await adminApi.createKiosk(form); setForm({ code: '', name: '', location: '' }); setMsg({ tone: 'good', text: 'Kiosk added.' }); reload() } catch (x) { setMsg({ tone: 'bad', text: x.message }) }
@@ -133,10 +151,18 @@ function Kiosks() {
           { key: 'name', label: 'Kiosk', render: (r) => <><span className="font-semibold">{r.name}</span><span className="block text-xs text-[var(--muted)]">{r.code}{r.location ? ` · ${r.location}` : ''}</span></> },
           { key: 'active', label: 'Status', render: (r) => <Badge tone={r.active ? 'good' : 'mute'}>{r.active ? 'active' : 'off'}</Badge> },
           { key: 'sessions_today', label: 'Today' },
-          { key: 'act', label: '', render: (r) => <span className="flex gap-1.5"><Btn aria-label={`Copy link for ${r.name}`} onClick={() => copy(r)}><Copy size={14} />Link</Btn>{isAdmin && <Btn onClick={() => toggle(r)}>{r.active ? 'Switch off' : 'Switch on'}</Btn>}</span> },
+          { key: 'agent', label: 'Shop PC', render: (r) => <Badge tone={r.agent?.online ? 'good' : r.agent?.key_set ? 'warn' : 'mute'}>{r.agent?.online ? 'printing ready' : r.agent?.key_set ? 'not connected' : 'no key yet'}</Badge> },
+          { key: 'act', label: '', render: (r) => <span className="flex gap-1.5"><Btn aria-label={`Copy link for ${r.name}`} onClick={() => copy(r)}><Copy size={14} />Link</Btn>{isAdmin && <Btn onClick={() => makeKey(r)}>{r.agent?.key_set ? 'New print key' : 'Print key'}</Btn>}{isAdmin && <Btn onClick={() => toggle(r)}>{r.active ? 'Switch off' : 'Switch on'}</Btn>}</span> },
         ]} />
       )}
       {msg && <div className="mt-3"><Notice tone={msg.tone}>{msg.text}</Notice></div>}
+      {newKey && (
+        <div className="mt-3">
+          <Notice tone="warn">Print key for <b>{newKey.name}</b>. Copy it now and paste it into config.json on that shop’s PC. It is shown only once.</Notice>
+          <code className="mt-2 block rounded-lg bg-[var(--hi)] p-2 text-xs [overflow-wrap:anywhere]" data-testid="agent-key">{newKey.key}</code>
+          <div className="mt-2"><Btn onClick={() => navigator.clipboard?.writeText(newKey.key).catch(() => {})}><Copy size={14} />Copy key</Btn></div>
+        </div>
+      )}
       {isAdmin && (
         <form onSubmit={add} className="mt-4 grid gap-3 border-t border-[var(--border)] pt-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
           <Field label="Code (letters, digits, - _)"><input className={inputCls} required pattern="[A-Za-z0-9_\-]+" maxLength={40} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} /></Field>
